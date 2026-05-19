@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout, ChapadaLogo } from "@/components/AuthLayout";
-import { DarkInput, FieldLabel } from "./login";
+import { LightInput, FieldLabel } from "./login";
 import { isAllowedEmail, DOMAIN_ERROR } from "@/lib/auth-domain";
 
 export const Route = createFileRoute("/esqueci-senha")({
@@ -13,6 +12,9 @@ export const Route = createFileRoute("/esqueci-senha")({
 });
 
 type Step = "email" | "code" | "password";
+
+// Código fixo de demonstração — fluxo simulado sem disparo real de e-mail.
+const DEMO_CODE = "123456";
 
 function EsqueciSenhaPage() {
   const navigate = useNavigate();
@@ -24,8 +26,9 @@ function EsqueciSenhaPage() {
   const [pwd2, setPwd2] = useState("");
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [demoSent, setDemoSent] = useState(false);
 
-  const sendCode = async (e: React.FormEvent) => {
+  const sendCode = (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError(null);
     const trimmed = email.trim().toLowerCase();
@@ -34,34 +37,20 @@ function EsqueciSenhaPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: `${window.location.origin}/esqueci-senha`,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Código enviado! Verifique seu e-mail.");
-    setEmail(trimmed);
-    setStep("code");
+    // Simulação: nenhum e-mail real é enviado. Mostramos o código na tela.
+    setTimeout(() => {
+      setEmail(trimmed);
+      setDemoSent(true);
+      setSubmitting(false);
+      setStep("code");
+      toast.success("Código de demonstração gerado!");
+    }, 400);
   };
 
-  const verifyCode = async (e: React.FormEvent) => {
+  const verifyCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 6) {
-      toast.error("O código deve ter 6 dígitos.");
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: "recovery",
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Código inválido ou expirado.");
+    if (code !== DEMO_CODE) {
+      toast.error("Código inválido. Use 123456 para a demonstração.");
       return;
     }
     setStep("password");
@@ -69,19 +58,15 @@ function EsqueciSenhaPage() {
 
   const match = pwd.length >= 8 && pwd === pwd2;
 
-  const savePassword = async (e: React.FormEvent) => {
+  const savePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (!match) return;
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password: pwd });
-    if (error) {
+    // Modo demonstração: não chamamos o backend; apenas redirecionamos.
+    setTimeout(() => {
       setSubmitting(false);
-      toast.error(error.message);
-      return;
-    }
-    await supabase.auth.signOut();
-    setSubmitting(false);
-    navigate({ to: "/login", search: { msg: "password_reset" } });
+      navigate({ to: "/login", search: { msg: "password_reset" } });
+    }, 400);
   };
 
   return (
@@ -89,12 +74,15 @@ function EsqueciSenhaPage() {
       left={
         <div className="flex flex-col items-center gap-6">
           <ChapadaLogo />
-          <p className="max-w-xs text-center text-sm text-white/70">
+          <p className="max-w-xs text-center text-sm text-white/90">
             {step === "email" && "Enviaremos um código de 6 dígitos para o seu e-mail institucional."}
             {step === "code" && "Insira o código que enviamos para o seu e-mail."}
             {step === "password" && "Escolha uma nova senha de acesso."}
           </p>
-          <Link to="/login" className="text-xs font-medium text-white/70 hover:underline">
+          <Link
+            to="/login"
+            className="rounded-md px-3 py-1.5 text-xs font-medium text-white/90 hover:bg-white/10 hover:underline"
+          >
             ← Voltar para login
           </Link>
         </div>
@@ -104,14 +92,21 @@ function EsqueciSenhaPage() {
           {step === "email" && (
             <form onSubmit={sendCode} className="space-y-5">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Recuperar senha</h2>
-                <p className="mt-1 text-sm text-white/60">Informe seu e-mail cadastrado.</p>
+                <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+                  Recuperar senha
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
+                  Informe seu e-mail cadastrado.
+                </p>
               </div>
               <div>
                 <FieldLabel htmlFor="email">E-mail</FieldLabel>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                  <DarkInput
+                  <Mail
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                    style={{ color: "#6B8A9A" }}
+                  />
+                  <LightInput
                     id="email"
                     type="email"
                     value={email}
@@ -122,13 +117,13 @@ function EsqueciSenhaPage() {
                   />
                 </div>
                 {emailError && (
-                  <p className="mt-2 text-xs font-medium" style={{ color: "#ff8a8a" }}>{emailError}</p>
+                  <p className="mt-2 text-xs font-medium" style={{ color: "#d64545" }}>{emailError}</p>
                 )}
               </div>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-lg transition-all hover:brightness-110 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-60"
                 style={{ backgroundColor: "#1A9FD4" }}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -140,16 +135,42 @@ function EsqueciSenhaPage() {
           {step === "code" && (
             <form onSubmit={verifyCode} className="space-y-5">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Insira o código</h2>
-                <p className="mt-1 text-sm text-white/60">
-                  Código de 6 dígitos enviado para <strong className="text-white">{email}</strong>.
+                <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+                  Insira o código
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
+                  Código de 6 dígitos enviado para{" "}
+                  <strong style={{ color: "#1A3A4A" }}>{email}</strong>.
                 </p>
               </div>
+
+              {demoSent && (
+                <div
+                  className="flex items-start gap-3 rounded-lg border p-3 text-sm"
+                  style={{
+                    backgroundColor: "#EAF4FB",
+                    borderColor: "#1A9FD4",
+                    color: "#1A3A4A",
+                  }}
+                >
+                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
+                  <div>
+                    <p className="font-semibold">📧 Código de demonstração:</p>
+                    <p className="mt-1 font-mono text-lg font-bold tracking-[0.3em]" style={{ color: "#1A9FD4" }}>
+                      {DEMO_CODE}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <FieldLabel htmlFor="code">Código de verificação</FieldLabel>
                 <div className="relative">
-                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                  <DarkInput
+                  <KeyRound
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                    style={{ color: "#6B8A9A" }}
+                  />
+                  <LightInput
                     id="code"
                     type="text"
                     inputMode="numeric"
@@ -157,24 +178,24 @@ function EsqueciSenhaPage() {
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                     placeholder="000000"
-                    className="pl-10 text-center tracking-[0.5em] text-lg font-semibold"
+                    className="pl-10 text-center text-lg font-semibold tracking-[0.5em]"
                     required
                   />
                 </div>
               </div>
               <button
                 type="submit"
-                disabled={submitting || code.length !== 6}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-lg transition-all hover:brightness-110 disabled:opacity-50"
+                disabled={code.length !== 6}
+                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-50"
                 style={{ backgroundColor: "#1A9FD4" }}
               >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Validar código
               </button>
               <button
                 type="button"
                 onClick={() => setStep("email")}
-                className="block w-full text-center text-xs text-white/60 hover:underline"
+                className="block w-full text-center text-xs hover:underline"
+                style={{ color: "#6B8A9A" }}
               >
                 Não recebeu? Reenviar código
               </button>
@@ -184,13 +205,17 @@ function EsqueciSenhaPage() {
           {step === "password" && (
             <form onSubmit={savePassword} className="space-y-5">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Nova senha</h2>
-                <p className="mt-1 text-sm text-white/60">Escolha uma senha segura.</p>
+                <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+                  Nova senha
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
+                  Escolha uma senha segura (mínimo 8 caracteres).
+                </p>
               </div>
               <div>
                 <FieldLabel htmlFor="pwd">Nova senha</FieldLabel>
                 <div className="relative">
-                  <DarkInput
+                  <LightInput
                     id="pwd"
                     type={show ? "text" : "password"}
                     value={pwd}
@@ -201,7 +226,8 @@ function EsqueciSenhaPage() {
                   <button
                     type="button"
                     onClick={() => setShow((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: "#6B8A9A" }}
                   >
                     {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -209,7 +235,7 @@ function EsqueciSenhaPage() {
               </div>
               <div>
                 <FieldLabel htmlFor="pwd2">Confirmar nova senha</FieldLabel>
-                <DarkInput
+                <LightInput
                   id="pwd2"
                   type={show ? "text" : "password"}
                   value={pwd2}
@@ -226,8 +252,8 @@ function EsqueciSenhaPage() {
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-3.5 w-3.5" style={{ color: "#ff8a8a" }} />
-                        <span style={{ color: "#ff8a8a" }}>
+                        <XCircle className="h-3.5 w-3.5" style={{ color: "#d64545" }} />
+                        <span style={{ color: "#d64545" }}>
                           {pwd.length < 8 ? "Mínimo de 8 caracteres" : "As senhas não coincidem"}
                         </span>
                       </>
@@ -238,7 +264,7 @@ function EsqueciSenhaPage() {
               <button
                 type="submit"
                 disabled={!match || submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-lg transition-all hover:brightness-110 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-50"
                 style={{ backgroundColor: "#1A9FD4" }}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
