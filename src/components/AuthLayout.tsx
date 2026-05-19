@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import chapadaLogo from "@/assets/chapada-logo.png";
 
-
 /**
- * Tela cheia com fundo escuro + grafismos sutis ligados ao campo/agricultura.
- * Card central com borda azul CHAPADA dividido em duas colunas.
+ * Tela cheia em tema claro com gradiente azul gelo.
+ * Card central com lado esquerdo azul CHAPADA e lado direito branco.
  */
 export function AuthLayout({
   left,
@@ -14,16 +13,21 @@ export function AuthLayout({
   right: ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A3A4A] text-white">
-      {/* Grafismos decorativos */}
+    <div
+      className="relative min-h-screen w-full overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #EAF4FB 0%, #C8E9F5 100%)",
+        color: "#1A3A4A",
+      }}
+    >
       <BackgroundGraphics />
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
         <div
-          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl"
+          className="w-full max-w-5xl overflow-hidden rounded-2xl border bg-white"
           style={{
-            borderColor: "#1A9FD4",
-            boxShadow: "0 30px 80px -20px rgba(26, 159, 212, 0.35)",
+            borderColor: "#C4DFF0",
+            boxShadow: "0 20px 50px -20px rgba(26, 159, 212, 0.25)",
           }}
         >
           <div className="grid md:grid-cols-2">
@@ -33,10 +37,7 @@ export function AuthLayout({
             >
               {left}
             </div>
-            <div
-              className="flex items-center justify-center p-8 md:p-12 md:border-l"
-              style={{ borderColor: "#1A9FD4", background: "rgba(20, 22, 45, 0.85)" }}
-            >
+            <div className="flex items-center justify-center bg-white p-8 md:p-12">
               <div className="w-full max-w-sm">{right}</div>
             </div>
           </div>
@@ -69,24 +70,21 @@ export function ChapadaLogo({ className = "" }: { className?: string }) {
 function BackgroundGraphics() {
   return (
     <>
-      {/* Gradientes radiais */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 15% 20%, rgba(26,159,212,0.18) 0%, transparent 45%), radial-gradient(circle at 85% 80%, rgba(245,166,35,0.12) 0%, transparent 45%)",
+            "radial-gradient(circle at 15% 20%, rgba(26,159,212,0.18) 0%, transparent 45%), radial-gradient(circle at 85% 80%, rgba(245,166,35,0.14) 0%, transparent 45%)",
         }}
       />
 
-      {/* Grafismo campo/agricultura - SVG sutil */}
       <svg
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.07]"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.18]"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid slice"
         viewBox="0 0 1440 900"
         fill="none"
       >
-        {/* Linhas de plantio em perspectiva */}
         <g stroke="#1A9FD4" strokeWidth="1.2">
           {Array.from({ length: 14 }).map((_, i) => (
             <line
@@ -98,32 +96,17 @@ function BackgroundGraphics() {
             />
           ))}
         </g>
-
-        {/* Sol/lua estilizado */}
         <circle cx="1200" cy="180" r="80" stroke="#F5A623" strokeWidth="1.5" />
         <circle cx="1200" cy="180" r="120" stroke="#F5A623" strokeWidth="0.8" />
-
-        {/* Folhas/plantas decorativas */}
         <g stroke="#1A9FD4" strokeWidth="1.5" strokeLinecap="round">
           <path d="M120 700 Q140 640 130 580 M130 580 Q110 600 100 620 M130 580 Q150 600 160 620" />
           <path d="M1320 760 Q1340 700 1330 640 M1330 640 Q1310 660 1300 680 M1330 640 Q1350 660 1360 680" />
         </g>
-
-        {/* Trigo/espiga estilizada */}
         <g stroke="#F5A623" strokeWidth="1.2" strokeLinecap="round">
           <line x1="240" y1="800" x2="240" y2="700" />
           <path d="M240 720 L225 715 M240 720 L255 715 M240 740 L223 735 M240 740 L257 735 M240 760 L221 755 M240 760 L259 755" />
         </g>
       </svg>
-
-      {/* Brilho inferior */}
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
-        style={{
-          background:
-            "linear-gradient(to top, rgba(26,159,212,0.12), transparent)",
-        }}
-      />
     </>
   );
 }
