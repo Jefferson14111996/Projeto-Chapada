@@ -1,0 +1,125 @@
+import type { ReactNode } from "react";
+
+/**
+ * Tela cheia com fundo escuro + grafismos sutis ligados ao campo/agricultura.
+ * Card central com borda azul CHAPADA dividido em duas colunas.
+ */
+export function AuthLayout({
+  left,
+  right,
+}: {
+  left: ReactNode;
+  right: ReactNode;
+}) {
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A1A2E] text-white">
+      {/* Grafismos decorativos */}
+      <BackgroundGraphics />
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+        <div
+          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl backdrop-blur-sm"
+          style={{
+            borderColor: "#1A9FD4",
+            background: "rgba(20, 22, 45, 0.85)",
+            boxShadow: "0 30px 80px -20px rgba(26, 159, 212, 0.35)",
+          }}
+        >
+          <div className="grid md:grid-cols-2">
+            <div className="flex items-center justify-center p-8 md:p-12">
+              {left}
+            </div>
+            <div
+              className="flex items-center justify-center p-8 md:p-12 md:border-l"
+              style={{ borderColor: "#1A9FD4" }}
+            >
+              <div className="w-full max-w-sm">{right}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ChapadaLogo({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-col items-center text-center ${className}`}>
+      <div className="relative grid h-24 w-24 place-items-center rounded-2xl bg-gradient-to-br from-[#1A9FD4] to-[#1178A8] shadow-lg">
+        <svg viewBox="0 0 64 64" className="h-14 w-14" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 50 L20 30 L32 42 L44 22 L56 38" />
+          <circle cx="50" cy="14" r="5" fill="#F5A623" stroke="none" />
+          <path d="M8 56 L56 56" />
+        </svg>
+      </div>
+      <div className="mt-4">
+        <p className="font-display text-3xl font-bold tracking-wide text-white">CHAPADA</p>
+        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/60">
+          Gestão de Projetos
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BackgroundGraphics() {
+  return (
+    <>
+      {/* Gradientes radiais */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 15% 20%, rgba(26,159,212,0.18) 0%, transparent 45%), radial-gradient(circle at 85% 80%, rgba(245,166,35,0.12) 0%, transparent 45%)",
+        }}
+      />
+
+      {/* Grafismo campo/agricultura - SVG sutil */}
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.07]"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1440 900"
+        fill="none"
+      >
+        {/* Linhas de plantio em perspectiva */}
+        <g stroke="#1A9FD4" strokeWidth="1.2">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <line
+              key={i}
+              x1={-200 + i * 130}
+              y1="900"
+              x2={400 + i * 60}
+              y2="450"
+            />
+          ))}
+        </g>
+
+        {/* Sol/lua estilizado */}
+        <circle cx="1200" cy="180" r="80" stroke="#F5A623" strokeWidth="1.5" />
+        <circle cx="1200" cy="180" r="120" stroke="#F5A623" strokeWidth="0.8" />
+
+        {/* Folhas/plantas decorativas */}
+        <g stroke="#1A9FD4" strokeWidth="1.5" strokeLinecap="round">
+          <path d="M120 700 Q140 640 130 580 M130 580 Q110 600 100 620 M130 580 Q150 600 160 620" />
+          <path d="M1320 760 Q1340 700 1330 640 M1330 640 Q1310 660 1300 680 M1330 640 Q1350 660 1360 680" />
+        </g>
+
+        {/* Trigo/espiga estilizada */}
+        <g stroke="#F5A623" strokeWidth="1.2" strokeLinecap="round">
+          <line x1="240" y1="800" x2="240" y2="700" />
+          <path d="M240 720 L225 715 M240 720 L255 715 M240 740 L223 735 M240 740 L257 735 M240 760 L221 755 M240 760 L259 755" />
+        </g>
+      </svg>
+
+      {/* Brilho inferior */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(26,159,212,0.12), transparent)",
+        }}
+      />
+    </>
+  );
+}
