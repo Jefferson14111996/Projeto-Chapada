@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import chapadaLogo from "@/assets/chapada-logo.png";
+
 
 /**
  * Tela cheia com fundo escuro + grafismos sutis ligados ao campo/agricultura.
@@ -18,20 +20,22 @@ export function AuthLayout({
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
         <div
-          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl backdrop-blur-sm"
+          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl"
           style={{
             borderColor: "#1A9FD4",
-            background: "rgba(20, 22, 45, 0.85)",
             boxShadow: "0 30px 80px -20px rgba(26, 159, 212, 0.35)",
           }}
         >
           <div className="grid md:grid-cols-2">
-            <div className="flex items-center justify-center p-8 md:p-12">
+            <div
+              className="flex items-center justify-center p-8 md:p-12"
+              style={{ backgroundColor: "#1A9FD4" }}
+            >
               {left}
             </div>
             <div
               className="flex items-center justify-center p-8 md:p-12 md:border-l"
-              style={{ borderColor: "#1A9FD4" }}
+              style={{ borderColor: "#1A9FD4", background: "rgba(20, 22, 45, 0.85)" }}
             >
               <div className="w-full max-w-sm">{right}</div>
             </div>
