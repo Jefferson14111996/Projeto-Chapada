@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/esqueci-senha")({
   component: EsqueciSenhaPage,
 });
 
-type Step = "email" | "code" | "password";
+type Step = "email" | "code" | "password" | "done";
 
 // Código fixo de demonstração — fluxo simulado sem disparo real de e-mail.
 const DEMO_CODE = "123456";
@@ -62,12 +62,20 @@ function EsqueciSenhaPage() {
     e.preventDefault();
     if (!match) return;
     setSubmitting(true);
-    // Modo demonstração: não chamamos o backend; apenas redirecionamos.
     setTimeout(() => {
       setSubmitting(false);
-      navigate({ to: "/login", search: { msg: "password_reset" } });
+      setStep("done");
     }, 400);
   };
+
+  useEffect(() => {
+    if (step !== "done") return;
+    const t = setTimeout(
+      () => navigate({ to: "/login", search: { msg: "password_reset" } }),
+      3000,
+    );
+    return () => clearTimeout(t);
+  }, [step, navigate]);
 
   return (
     <AuthLayout
@@ -155,7 +163,10 @@ function EsqueciSenhaPage() {
                 >
                   <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
                   <div>
-                    <p className="font-semibold">📧 Código de demonstração:</p>
+                    <p className="font-semibold">📧 Código enviado! Verifique seu e-mail @ongchapada.org.br</p>
+                    <p className="mt-1 text-xs" style={{ color: "#6B8A9A" }}>
+                      Código de demonstração:
+                    </p>
                     <p className="mt-1 font-mono text-lg font-bold tracking-[0.3em]" style={{ color: "#1A9FD4" }}>
                       {DEMO_CODE}
                     </p>
@@ -271,6 +282,30 @@ function EsqueciSenhaPage() {
                 Salvar nova senha
               </button>
             </form>
+          )}
+
+          {step === "done" && (
+            <div className="space-y-4 text-center">
+              <div
+                className="mx-auto grid h-14 w-14 place-items-center rounded-full"
+                style={{ backgroundColor: "rgba(76,175,80,0.15)" }}
+              >
+                <CheckCircle2 className="h-7 w-7" style={{ color: "#4CAF50" }} />
+              </div>
+              <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+                ✅ Senha alterada com sucesso!
+              </h2>
+              <p className="text-sm" style={{ color: "#6B8A9A" }}>
+                Redirecionando para o login em alguns segundos…
+              </p>
+              <Link
+                to="/login"
+                className="inline-block text-xs font-medium hover:underline"
+                style={{ color: "#1A9FD4" }}
+              >
+                Ir para o login agora
+              </Link>
+            </div>
           )}
         </>
       }
