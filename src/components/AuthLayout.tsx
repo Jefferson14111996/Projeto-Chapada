@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import chapadaLogo from "@/assets/chapada-logo.png";
+
 
 /**
  * Tela cheia com fundo escuro + grafismos sutis ligados ao campo/agricultura.
@@ -12,26 +14,28 @@ export function AuthLayout({
   right: ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A1A2E] text-white">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A3A4A] text-white">
       {/* Grafismos decorativos */}
       <BackgroundGraphics />
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
         <div
-          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl backdrop-blur-sm"
+          className="w-full max-w-5xl overflow-hidden rounded-2xl border-2 shadow-2xl"
           style={{
             borderColor: "#1A9FD4",
-            background: "rgba(20, 22, 45, 0.85)",
             boxShadow: "0 30px 80px -20px rgba(26, 159, 212, 0.35)",
           }}
         >
           <div className="grid md:grid-cols-2">
-            <div className="flex items-center justify-center p-8 md:p-12">
+            <div
+              className="flex items-center justify-center p-8 md:p-12"
+              style={{ backgroundColor: "#1A9FD4" }}
+            >
               {left}
             </div>
             <div
               className="flex items-center justify-center p-8 md:p-12 md:border-l"
-              style={{ borderColor: "#1A9FD4" }}
+              style={{ borderColor: "#1A9FD4", background: "rgba(20, 22, 45, 0.85)" }}
             >
               <div className="w-full max-w-sm">{right}</div>
             </div>
@@ -45,16 +49,16 @@ export function AuthLayout({
 export function ChapadaLogo({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-col items-center text-center ${className}`}>
-      <div className="relative grid h-24 w-24 place-items-center rounded-2xl bg-gradient-to-br from-[#1A9FD4] to-[#1178A8] shadow-lg">
-        <svg viewBox="0 0 64 64" className="h-14 w-14" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 50 L20 30 L32 42 L44 22 L56 38" />
-          <circle cx="50" cy="14" r="5" fill="#F5A623" stroke="none" />
-          <path d="M8 56 L56 56" />
-        </svg>
+      <div className="relative grid h-28 w-28 place-items-center">
+        <img
+          src={chapadaLogo}
+          alt="Logo CHAPADA"
+          className="h-full w-full object-contain drop-shadow-lg"
+        />
       </div>
       <div className="mt-4">
         <p className="font-display text-3xl font-bold tracking-wide text-white">CHAPADA</p>
-        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/60">
+        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/80">
           Gestão de Projetos
         </p>
       </div>

@@ -73,8 +73,8 @@ function LoginPage() {
             <p className="text-base text-white/80">Primeiro Acesso?</p>
             <Link
               to="/registro"
-              className="mt-3 inline-flex items-center justify-center rounded-lg px-6 py-2.5 text-sm font-semibold text-[#1A1A2E] transition-all hover:brightness-110"
-              style={{ backgroundColor: "#F5A623" }}
+              className="mt-3 inline-flex items-center justify-center rounded-lg px-6 py-2.5 text-sm font-semibold transition-all hover:brightness-110"
+              style={{ backgroundColor: "#F5A623", color: "#1A3A4A" }}
             >
               Registre Agora
             </Link>
