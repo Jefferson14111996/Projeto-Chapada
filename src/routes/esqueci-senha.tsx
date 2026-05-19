@@ -283,6 +283,30 @@ function EsqueciSenhaPage() {
               </button>
             </form>
           )}
+
+          {step === "done" && (
+            <div className="space-y-4 text-center">
+              <div
+                className="mx-auto grid h-14 w-14 place-items-center rounded-full"
+                style={{ backgroundColor: "rgba(76,175,80,0.15)" }}
+              >
+                <CheckCircle2 className="h-7 w-7" style={{ color: "#4CAF50" }} />
+              </div>
+              <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+                ✅ Senha alterada com sucesso!
+              </h2>
+              <p className="text-sm" style={{ color: "#6B8A9A" }}>
+                Redirecionando para o login em alguns segundos…
+              </p>
+              <Link
+                to="/login"
+                className="inline-block text-xs font-medium hover:underline"
+                style={{ color: "#1A9FD4" }}
+              >
+                Ir para o login agora
+              </Link>
+            </div>
+          )}
         </>
       }
     />
