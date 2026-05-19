@@ -51,7 +51,7 @@ function CriarSenhaPage() {
       left={
         <div className="flex flex-col items-center gap-6">
           <ChapadaLogo />
-          <p className="max-w-xs text-center text-sm text-white/70">
+          <p className="max-w-xs text-center text-sm text-white/90">
             E-mail confirmado! Defina uma senha segura para acessar o sistema.
           </p>
         </div>
@@ -59,8 +59,8 @@ function CriarSenhaPage() {
       right={
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <h2 className="font-display text-2xl font-bold text-white">Criar sua senha</h2>
-            <p className="mt-1 text-sm text-white/60">Mínimo de 8 caracteres.</p>
+            <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>Criar sua senha</h2>
+            <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>Mínimo de 8 caracteres.</p>
           </div>
 
           <div>
@@ -77,7 +77,8 @@ function CriarSenhaPage() {
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                style={{ color: "#6B8A9A" }}
               >
                 {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -103,8 +104,8 @@ function CriarSenhaPage() {
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-3.5 w-3.5" style={{ color: "#ff8a8a" }} />
-                    <span style={{ color: "#ff8a8a" }}>
+                    <XCircle className="h-3.5 w-3.5" style={{ color: "#d64545" }} />
+                    <span style={{ color: "#d64545" }}>
                       {!longEnough ? "Mínimo de 8 caracteres" : "As senhas não coincidem"}
                     </span>
                   </>
@@ -116,15 +117,15 @@ function CriarSenhaPage() {
           <button
             type="submit"
             disabled={!match || submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-lg transition-all hover:brightness-110 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-50"
             style={{ backgroundColor: "#1A9FD4" }}
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Criar senha e acessar
           </button>
 
-          <p className="text-center text-xs text-white/50">
-            <Link to="/login" className="hover:underline">Voltar para o login</Link>
+          <p className="text-center text-xs" style={{ color: "#6B8A9A" }}>
+            <Link to="/login" className="hover:underline" style={{ color: "#1A9FD4" }}>Voltar para o login</Link>
           </p>
         </form>
       }
