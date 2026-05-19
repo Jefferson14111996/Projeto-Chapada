@@ -62,12 +62,20 @@ function EsqueciSenhaPage() {
     e.preventDefault();
     if (!match) return;
     setSubmitting(true);
-    // Modo demonstração: não chamamos o backend; apenas redirecionamos.
     setTimeout(() => {
       setSubmitting(false);
-      navigate({ to: "/login", search: { msg: "password_reset" } });
+      setStep("done");
     }, 400);
   };
+
+  useEffect(() => {
+    if (step !== "done") return;
+    const t = setTimeout(
+      () => navigate({ to: "/login", search: { msg: "password_reset" } }),
+      3000,
+    );
+    return () => clearTimeout(t);
+  }, [step, navigate]);
 
   return (
     <AuthLayout
@@ -155,7 +163,10 @@ function EsqueciSenhaPage() {
                 >
                   <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
                   <div>
-                    <p className="font-semibold">📧 Código de demonstração:</p>
+                    <p className="font-semibold">📧 Código enviado! Verifique seu e-mail @ongchapada.org.br</p>
+                    <p className="mt-1 text-xs" style={{ color: "#6B8A9A" }}>
+                      Código de demonstração:
+                    </p>
                     <p className="mt-1 font-mono text-lg font-bold tracking-[0.3em]" style={{ color: "#1A9FD4" }}>
                       {DEMO_CODE}
                     </p>
