@@ -1,7 +1,9 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, LogOut, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppLayout({
   title,
@@ -14,6 +16,31 @@ export function AppLayout({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const navigate = useNavigate();
+  const { session, loading, user, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      navigate({ to: "/login" });
+    }
+  }, [loading, session, navigate]);
+
+  if (loading || !session) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const email = user?.email ?? "";
+  const initials = email
+    .split("@")[0]
+    .split(/[._-]/)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("")
+    .slice(0, 2) || "CH";
+
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -36,11 +63,25 @@ export function AppLayout({
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-terracotta" />
           </button>
+          <div className="hidden sm:flex flex-col items-end leading-tight">
+            <span className="text-xs font-medium truncate max-w-[160px]">{email}</span>
+          </div>
           <Avatar className="h-9 w-9 border border-border">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
-              MC
+              {initials}
             </AvatarFallback>
           </Avatar>
+          <button
+            onClick={async () => {
+              await signOut();
+              navigate({ to: "/login" });
+            }}
+            className="h-9 w-9 grid place-items-center rounded-lg hover:bg-muted transition-colors"
+            aria-label="Sair"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </header>
 
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8">

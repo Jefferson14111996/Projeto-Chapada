@@ -11,9 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as TecnologiasRouteImport } from './routes/tecnologias'
+import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as ProjetosRouteImport } from './routes/projetos'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndicadoresRouteImport } from './routes/indicadores'
 import { Route as ImagensRouteImport } from './routes/imagens'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
+import { Route as CriarSenhaRouteImport } from './routes/criar-senha'
 import { Route as AtividadesRouteImport } from './routes/atividades'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -27,9 +31,19 @@ const TecnologiasRoute = TecnologiasRouteImport.update({
   path: '/tecnologias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegistroRoute = RegistroRouteImport.update({
+  id: '/registro',
+  path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjetosRoute = ProjetosRouteImport.update({
   id: '/projetos',
   path: '/projetos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndicadoresRoute = IndicadoresRouteImport.update({
@@ -40,6 +54,16 @@ const IndicadoresRoute = IndicadoresRouteImport.update({
 const ImagensRoute = ImagensRouteImport.update({
   id: '/imagens',
   path: '/imagens',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarSenhaRoute = CriarSenhaRouteImport.update({
+  id: '/criar-senha',
+  path: '/criar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtividadesRoute = AtividadesRouteImport.update({
@@ -56,18 +80,26 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atividades': typeof AtividadesRoute
+  '/criar-senha': typeof CriarSenhaRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/imagens': typeof ImagensRoute
   '/indicadores': typeof IndicadoresRoute
+  '/login': typeof LoginRoute
   '/projetos': typeof ProjetosRoute
+  '/registro': typeof RegistroRoute
   '/tecnologias': typeof TecnologiasRoute
   '/usuarios': typeof UsuariosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atividades': typeof AtividadesRoute
+  '/criar-senha': typeof CriarSenhaRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/imagens': typeof ImagensRoute
   '/indicadores': typeof IndicadoresRoute
+  '/login': typeof LoginRoute
   '/projetos': typeof ProjetosRoute
+  '/registro': typeof RegistroRoute
   '/tecnologias': typeof TecnologiasRoute
   '/usuarios': typeof UsuariosRoute
 }
@@ -75,9 +107,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/atividades': typeof AtividadesRoute
+  '/criar-senha': typeof CriarSenhaRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/imagens': typeof ImagensRoute
   '/indicadores': typeof IndicadoresRoute
+  '/login': typeof LoginRoute
   '/projetos': typeof ProjetosRoute
+  '/registro': typeof RegistroRoute
   '/tecnologias': typeof TecnologiasRoute
   '/usuarios': typeof UsuariosRoute
 }
@@ -86,27 +122,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/atividades'
+    | '/criar-senha'
+    | '/esqueci-senha'
     | '/imagens'
     | '/indicadores'
+    | '/login'
     | '/projetos'
+    | '/registro'
     | '/tecnologias'
     | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/atividades'
+    | '/criar-senha'
+    | '/esqueci-senha'
     | '/imagens'
     | '/indicadores'
+    | '/login'
     | '/projetos'
+    | '/registro'
     | '/tecnologias'
     | '/usuarios'
   id:
     | '__root__'
     | '/'
     | '/atividades'
+    | '/criar-senha'
+    | '/esqueci-senha'
     | '/imagens'
     | '/indicadores'
+    | '/login'
     | '/projetos'
+    | '/registro'
     | '/tecnologias'
     | '/usuarios'
   fileRoutesById: FileRoutesById
@@ -114,9 +162,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtividadesRoute: typeof AtividadesRoute
+  CriarSenhaRoute: typeof CriarSenhaRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   ImagensRoute: typeof ImagensRoute
   IndicadoresRoute: typeof IndicadoresRoute
+  LoginRoute: typeof LoginRoute
   ProjetosRoute: typeof ProjetosRoute
+  RegistroRoute: typeof RegistroRoute
   TecnologiasRoute: typeof TecnologiasRoute
   UsuariosRoute: typeof UsuariosRoute
 }
@@ -137,11 +189,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TecnologiasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/registro': {
+      id: '/registro'
+      path: '/registro'
+      fullPath: '/registro'
+      preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projetos': {
       id: '/projetos'
       path: '/projetos'
       fullPath: '/projetos'
       preLoaderRoute: typeof ProjetosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/indicadores': {
@@ -156,6 +222,20 @@ declare module '@tanstack/react-router' {
       path: '/imagens'
       fullPath: '/imagens'
       preLoaderRoute: typeof ImagensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-senha': {
+      id: '/criar-senha'
+      path: '/criar-senha'
+      fullPath: '/criar-senha'
+      preLoaderRoute: typeof CriarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/atividades': {
@@ -178,9 +258,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtividadesRoute: AtividadesRoute,
+  CriarSenhaRoute: CriarSenhaRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   ImagensRoute: ImagensRoute,
   IndicadoresRoute: IndicadoresRoute,
+  LoginRoute: LoginRoute,
   ProjetosRoute: ProjetosRoute,
+  RegistroRoute: RegistroRoute,
   TecnologiasRoute: TecnologiasRoute,
   UsuariosRoute: UsuariosRoute,
 }
