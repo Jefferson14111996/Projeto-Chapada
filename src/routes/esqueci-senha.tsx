@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/esqueci-senha")({
   component: EsqueciSenhaPage,
 });
 
-type Step = "email" | "code" | "password";
+type Step = "email" | "code" | "password" | "done";
 
 // Código fixo de demonstração — fluxo simulado sem disparo real de e-mail.
 const DEMO_CODE = "123456";
