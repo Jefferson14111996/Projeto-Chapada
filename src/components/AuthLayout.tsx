@@ -14,7 +14,7 @@ export function AuthLayout({
   right: ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A1A2E] text-white">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#1A3A4A] text-white">
       {/* Grafismos decorativos */}
       <BackgroundGraphics />
 
@@ -49,16 +49,16 @@ export function AuthLayout({
 export function ChapadaLogo({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-col items-center text-center ${className}`}>
-      <div className="relative grid h-24 w-24 place-items-center rounded-2xl bg-gradient-to-br from-[#1A9FD4] to-[#1178A8] shadow-lg">
-        <svg viewBox="0 0 64 64" className="h-14 w-14" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 50 L20 30 L32 42 L44 22 L56 38" />
-          <circle cx="50" cy="14" r="5" fill="#F5A623" stroke="none" />
-          <path d="M8 56 L56 56" />
-        </svg>
+      <div className="relative grid h-28 w-28 place-items-center">
+        <img
+          src={chapadaLogo}
+          alt="Logo CHAPADA"
+          className="h-full w-full object-contain drop-shadow-lg"
+        />
       </div>
       <div className="mt-4">
         <p className="font-display text-3xl font-bold tracking-wide text-white">CHAPADA</p>
-        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/60">
+        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/80">
           Gestão de Projetos
         </p>
       </div>
