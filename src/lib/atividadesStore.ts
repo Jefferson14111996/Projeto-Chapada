@@ -15,6 +15,7 @@ export interface AtividadeFull extends Atividade {
   municipio?: string;
   anexos?: { nome: string; dataUrl: string }[];
   indicadores?: AtividadeIndicadores;
+  editado?: boolean;
 }
 
 let atividades: AtividadeFull[] = [...atividadesMock];
@@ -22,14 +23,29 @@ let atividades: AtividadeFull[] = [...atividadesMock];
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
-  return () => listeners.delete(cb);
+  return () => {
+    listeners.delete(cb);
+  };
 };
 const emit = () => listeners.forEach((l) => l());
 
+const sortDesc = (arr: AtividadeFull[]) =>
+  [...arr].sort((x, y) => y.data.localeCompare(x.data));
+
 export const addAtividade = (a: Omit<AtividadeFull, "id">) => {
-  atividades = [{ ...a, id: `a${Date.now()}` }, ...atividades].sort((x, y) =>
-    y.data.localeCompare(x.data),
+  atividades = sortDesc([{ ...a, id: `a${Date.now()}` }, ...atividades]);
+  emit();
+};
+
+export const updateAtividade = (id: string, patch: Partial<AtividadeFull>) => {
+  atividades = sortDesc(
+    atividades.map((a) => (a.id === id ? { ...a, ...patch, editado: true } : a)),
   );
+  emit();
+};
+
+export const deleteAtividade = (id: string) => {
+  atividades = atividades.filter((a) => a.id !== id);
   emit();
 };
 

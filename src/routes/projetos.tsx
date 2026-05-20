@@ -54,6 +54,8 @@ import {
 } from "@/lib/mockData";
 import { calcVigenciaProgress } from "@/lib/progress";
 import { toast } from "sonner";
+import { useGlobalSearch } from "@/contexts/SearchContext";
+import { addNotification } from "@/lib/notificationsStore";
 
 export const Route = createFileRoute("/projetos")({
   head: () => ({
@@ -90,6 +92,7 @@ const empty: Projeto = {
 function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>(projetosMock);
   const [search, setSearch] = useState("");
+  const { query: globalQuery } = useGlobalSearch();
   const [fFin, setFFin] = useState<string>("todos");
   const [fMun, setFMun] = useState<string>("todos");
   const [fStatus, setFStatus] = useState<string>("todos");
@@ -97,14 +100,16 @@ function ProjetosPage() {
   const [editing, setEditing] = useState<Projeto>(empty);
 
   const filtered = useMemo(() => {
+    const gq = globalQuery.trim().toLowerCase();
     return projetos.filter((p) => {
       if (search && !p.nome.toLowerCase().includes(search.toLowerCase())) return false;
+      if (gq && ![p.nome, p.contrato, p.financiador, p.publicoCaract, p.municipios.join(" ")].join(" ").toLowerCase().includes(gq)) return false;
       if (fFin !== "todos" && p.financiador !== fFin) return false;
       if (fMun !== "todos" && !p.municipios.includes(fMun)) return false;
       if (fStatus !== "todos" && p.status !== fStatus) return false;
       return true;
     });
-  }, [projetos, search, fFin, fMun, fStatus]);
+  }, [projetos, search, globalQuery, fFin, fMun, fStatus]);
 
   const openNew = () => {
     setEditing({ ...empty, id: "" });

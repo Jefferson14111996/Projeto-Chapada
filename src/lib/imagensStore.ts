@@ -72,12 +72,19 @@ let imagens: ImagemItem[] = seed;
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
-  return () => listeners.delete(cb);
+  return () => {
+    listeners.delete(cb);
+  };
 };
 const emit = () => listeners.forEach((l) => l());
 
 export const addImagem = (img: Omit<ImagemItem, "id">) => {
   imagens = [{ ...img, id: `img${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }, ...imagens];
+  emit();
+};
+
+export const updateImagem = (id: string, patch: Partial<Omit<ImagemItem, "id" | "dataUrl" | "nomeArquivo">>) => {
+  imagens = imagens.map((i) => (i.id === id ? { ...i, ...patch } : i));
   emit();
 };
 
