@@ -146,10 +146,6 @@ function EsqueciSenhaPage() {
                 <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
                   Insira o código
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
-                  Código de 6 dígitos enviado para{" "}
-                  <strong style={{ color: "#1A3A4A" }}>{email}</strong>.
-                </p>
               </div>
 
               {demoSent && (
@@ -162,15 +158,10 @@ function EsqueciSenhaPage() {
                   }}
                 >
                   <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
-                  <div>
-                    <p className="font-semibold">📧 Código enviado! Verifique seu e-mail @ongchapada.org.br</p>
-                    <p className="mt-1 text-xs" style={{ color: "#6B8A9A" }}>
-                      Código de demonstração:
-                    </p>
-                    <p className="mt-1 font-mono text-lg font-bold tracking-[0.3em]" style={{ color: "#1A9FD4" }}>
-                      {DEMO_CODE}
-                    </p>
-                  </div>
+                  <p>
+                    ✉️ Um código de 6 dígitos foi enviado para{" "}
+                    <strong>{email}</strong>. Verifique sua caixa de entrada.
+                  </p>
                 </div>
               )}
 

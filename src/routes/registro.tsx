@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info, User } from "lucide-react";
 import { toast } from "sonner";
 import { AuthLayout, ChapadaLogo } from "@/components/AuthLayout";
 import { LightInput, FieldLabel } from "./login";
 import { isAllowedEmail, DOMAIN_ERROR } from "@/lib/auth-domain";
+import { setProfile, capitalize } from "@/lib/profileStore";
 
 export const Route = createFileRoute("/registro")({
   head: () => ({ meta: [{ title: "Cadastro — CHAPADA" }] }),
@@ -20,11 +21,12 @@ function RegistroPage() {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
 
   const sendCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +39,6 @@ function RegistroPage() {
     setSubmitting(true);
     setTimeout(() => {
       setEmail(trimmed);
-      setCodeSent(true);
       setStep("code");
       setSubmitting(false);
       toast.success("Código enviado!");
@@ -47,19 +48,25 @@ function RegistroPage() {
   const verifyCode = (e: React.FormEvent) => {
     e.preventDefault();
     if (code !== DEMO_CODE) {
-      toast.error("Código inválido. Use 123456 para a demonstração.");
+      toast.error("Código inválido.");
       return;
     }
     setStep("password");
   };
 
   const match = pwd.length >= 8 && pwd === pwd2;
+  const canCreate = firstName.trim() && lastName.trim() && match;
 
   const createAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!match) return;
+    if (!canCreate) return;
     setSubmitting(true);
     setTimeout(() => {
+      setProfile(email, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        password: pwd,
+      });
       setSubmitting(false);
       setStep("done");
     }, 500);
@@ -75,9 +82,9 @@ function RegistroPage() {
     step === "email"
       ? "Cadastre seu e-mail institucional para começar."
       : step === "code"
-      ? "Insira o código de 6 dígitos que enviamos."
+      ? "Insira o código de 6 dígitos enviado para seu e-mail."
       : step === "password"
-      ? "Defina uma senha segura de acesso."
+      ? "Complete seus dados e crie uma senha segura."
       : "Tudo pronto! Redirecionando…";
 
   return (
@@ -154,28 +161,18 @@ function RegistroPage() {
                 <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
                   Verificar código
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
-                  Enviado para <strong style={{ color: "#1A3A4A" }}>{email}</strong>.
-                </p>
               </div>
 
-              {codeSent && (
-                <div
-                  className="flex items-start gap-3 rounded-lg border p-3 text-sm"
-                  style={{ backgroundColor: "#EAF4FB", borderColor: "#1A9FD4", color: "#1A3A4A" }}
-                >
-                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
-                  <div>
-                    <p className="font-semibold">📧 Código enviado! Verifique seu e-mail @ongchapada.org.br</p>
-                    <p className="mt-1 text-xs" style={{ color: "#6B8A9A" }}>
-                      Código de demonstração:
-                    </p>
-                    <p className="mt-1 font-mono text-lg font-bold tracking-[0.3em]" style={{ color: "#1A9FD4" }}>
-                      {DEMO_CODE}
-                    </p>
-                  </div>
-                </div>
-              )}
+              <div
+                className="flex items-start gap-3 rounded-lg border p-3 text-sm"
+                style={{ backgroundColor: "#EAF4FB", borderColor: "#1A9FD4", color: "#1A3A4A" }}
+              >
+                <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
+                <p>
+                  ✉️ Um código de 6 dígitos foi enviado para{" "}
+                  <strong>{email}</strong>. Verifique sua caixa de entrada.
+                </p>
+              </div>
 
               <div>
                 <FieldLabel htmlFor="code">Código de verificação</FieldLabel>
@@ -217,15 +214,46 @@ function RegistroPage() {
           )}
 
           {step === "password" && (
-            <form onSubmit={createAccount} className="space-y-5">
+            <form onSubmit={createAccount} className="space-y-4">
               <div>
                 <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
-                  Criar sua senha
+                  Complete seu cadastro
                 </h2>
                 <p className="mt-1 text-sm" style={{ color: "#6B8A9A" }}>
-                  Mínimo de 8 caracteres.
+                  Informe seus dados e crie uma senha de acesso.
                 </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel htmlFor="firstName">Nome</FieldLabel>
+                  <div className="relative">
+                    <User
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                      style={{ color: "#6B8A9A" }}
+                    />
+                    <LightInput
+                      id="firstName"
+                      placeholder="Ex: Maria"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel htmlFor="lastName">Sobrenome</FieldLabel>
+                  <LightInput
+                    id="lastName"
+                    placeholder="Ex: Conceição"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
               <div>
                 <FieldLabel htmlFor="pwd">Nova senha</FieldLabel>
                 <div className="relative">
@@ -248,7 +276,7 @@ function RegistroPage() {
                 </div>
               </div>
               <div>
-                <FieldLabel htmlFor="pwd2">Confirmar senha</FieldLabel>
+                <FieldLabel htmlFor="pwd2">Confirmar nova senha</FieldLabel>
                 <LightInput
                   id="pwd2"
                   type={show ? "text" : "password"}
@@ -277,12 +305,12 @@ function RegistroPage() {
               </div>
               <button
                 type="submit"
-                disabled={!match || submitting}
+                disabled={!canCreate || submitting}
                 className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-50"
                 style={{ backgroundColor: "#1A9FD4" }}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Criar minha senha
+                Criar minha conta
               </button>
             </form>
           )}
@@ -295,10 +323,13 @@ function RegistroPage() {
               >
                 <CheckCircle2 className="h-7 w-7" style={{ color: "#4CAF50" }} />
               </div>
-              <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
+              <h2 className="font-display text-xl font-bold" style={{ color: "#1A9FD4" }}>
                 ✅ Conta criada com sucesso!
               </h2>
-              <p className="text-sm" style={{ color: "#6B8A9A" }}>
+              <p className="text-sm" style={{ color: "#1A3A4A" }}>
+                Bem-vindo(a), <strong>{capitalize(firstName)} {capitalize(lastName)}</strong>!
+              </p>
+              <p className="text-xs" style={{ color: "#6B8A9A" }}>
                 Redirecionando para o login em alguns segundos…
               </p>
               <Link
