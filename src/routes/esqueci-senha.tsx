@@ -50,7 +50,7 @@ function EsqueciSenhaPage() {
   const verifyCode = (e: React.FormEvent) => {
     e.preventDefault();
     if (code !== DEMO_CODE) {
-      toast.error("Código inválido. Use 123456 para a demonstração.");
+      toast.error("Código inválido.");
       return;
     }
     setStep("password");
