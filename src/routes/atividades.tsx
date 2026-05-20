@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Paperclip, Calendar, MapPin, User, ChevronDown, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Paperclip, Calendar, MapPin, User, ChevronDown, X, Pencil, Trash2 } from "lucide-react";
 import { projetosMock, formatDate, MUNICIPIOS } from "@/lib/mockData";
-import { addAtividade, useAtividades } from "@/lib/atividadesStore";
+import {
+  addAtividade,
+  deleteAtividade,
+  updateAtividade,
+  useAtividades,
+  type AtividadeFull,
+} from "@/lib/atividadesStore";
+import { addNotification } from "@/lib/notificationsStore";
+import { useGlobalSearch } from "@/contexts/SearchContext";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/atividades")({
@@ -41,18 +59,66 @@ const emptyForm = {
   tecnologiasSociais: "",
 };
 
+type FormState = typeof emptyForm;
+
+const intOrUndef = (s: string) => {
+  if (!s) return undefined;
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+};
+
+const toFormState = (a: AtividadeFull): FormState => ({
+  projetoId: a.projetoId,
+  data: a.data,
+  tipo: a.tipo,
+  descricao: a.descricao,
+  local: a.local,
+  municipio: a.municipio ?? "",
+  responsaveis: a.responsaveis,
+  participantes: String(a.indicadores?.participantes ?? ""),
+  mulheres: String(a.indicadores?.mulheres ?? ""),
+  jovens: String(a.indicadores?.jovens ?? ""),
+  quilombolas: String(a.indicadores?.quilombolas ?? ""),
+  povosOriginarios: String(a.indicadores?.povosOriginarios ?? ""),
+  comunidadesTradicionais: String(a.indicadores?.comunidadesTradicionais ?? ""),
+  tecnologiasSociais: String(a.indicadores?.tecnologiasSociais ?? ""),
+});
+
 function AtividadesPage() {
   const ordenadas = useAtividades();
+  const { query } = useGlobalSearch();
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [toDelete, setToDelete] = useState<AtividadeFull | null>(null);
 
-  const total = ordenadas.length;
-  const items = ordenadas.slice(0, visible);
+  const projetoMap = useMemo(
+    () => new Map(projetosMock.map((p) => [p.id, p])),
+    [],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ordenadas;
+    return ordenadas.filter((a) => {
+      const proj = projetoMap.get(a.projetoId)?.nome ?? "";
+      return [a.descricao, a.tipo, a.local, a.responsaveis, a.municipio ?? "", proj]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [ordenadas, query, projetoMap]);
+
+  const total = filtered.length;
+  const items = filtered.slice(0, visible);
   const hasMore = visible < total;
-  const projetoMap = new Map(projetosMock.map((p) => [p.id, p]));
+
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [query]);
 
   const loadMore = useCallback(() => {
     if (loading || !hasMore) return;
@@ -60,7 +126,7 @@ function AtividadesPage() {
     setTimeout(() => {
       setVisible((v) => Math.min(v + PAGE_SIZE, total));
       setLoading(false);
-    }, 300);
+    }, 200);
   }, [loading, hasMore, total]);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +141,7 @@ function AtividadesPage() {
     return () => observer.disconnect();
   }, [loadMore, hasMore]);
 
-  const setF = (k: keyof typeof emptyForm) => (v: string) =>
+  const setF = (k: keyof FormState) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const onAnexos = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,10 +154,18 @@ function AtividadesPage() {
     });
   };
 
-  const intOrUndef = (s: string) => {
-    if (!s) return undefined;
-    const n = parseInt(s, 10);
-    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  const openNew = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setAnexos([]);
+    setOpen(true);
+  };
+
+  const openEdit = (a: AtividadeFull) => {
+    setEditingId(a.id);
+    setForm(toFormState(a));
+    setAnexos(a.anexos ?? []);
+    setOpen(true);
   };
 
   const handleSave = () => {
@@ -99,7 +173,7 @@ function AtividadesPage() {
       toast.error("Preencha Projeto, Data, Tipo de Ação e Descrição.");
       return;
     }
-    addAtividade({
+    const payload = {
       projetoId: form.projetoId,
       data: form.data,
       tipo: form.tipo,
@@ -117,11 +191,31 @@ function AtividadesPage() {
         comunidadesTradicionais: intOrUndef(form.comunidadesTradicionais),
         tecnologiasSociais: intOrUndef(form.tecnologiasSociais),
       },
-    });
-    toast.success("Atividade registrada.");
+    };
+
+    if (editingId) {
+      updateAtividade(editingId, payload);
+      toast.success("Atividade atualizada.");
+    } else {
+      addAtividade(payload);
+      addNotification({
+        type: "atividade",
+        title: "Nova atividade cadastrada",
+        body: form.descricao.slice(0, 80),
+      });
+      toast.success("Atividade registrada.");
+    }
     setForm(emptyForm);
     setAnexos([]);
+    setEditingId(null);
     setOpen(false);
+  };
+
+  const confirmDelete = () => {
+    if (!toDelete) return;
+    deleteAtividade(toDelete.id);
+    setToDelete(null);
+    toast.success("Atividade excluída.");
   };
 
   return (
@@ -129,7 +223,7 @@ function AtividadesPage() {
       title="Registro de Atividades"
       subtitle="Histórico de ações realizadas nos projetos"
       actions={
-        <Button className="gap-2" onClick={() => setOpen(true)}>
+        <Button className="gap-2" onClick={openNew}>
           <Plus className="h-4 w-4" /> Nova Atividade
         </Button>
       }
@@ -142,7 +236,9 @@ function AtividadesPage() {
           </div>
 
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma atividade registrada ainda.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              {query ? "Nenhuma atividade encontrada para esta busca." : "Nenhuma atividade registrada ainda."}
+            </p>
           ) : (
             <ol className="relative border-l-2 border-border ml-3 space-y-5">
               {items.map((a) => {
@@ -150,15 +246,26 @@ function AtividadesPage() {
                 return (
                   <li key={a.id} className="ml-6">
                     <span className="absolute -left-[9px] h-4 w-4 rounded-full bg-primary border-2 border-background" />
-                    <div className="bg-muted/40 rounded-lg p-4">
+                    <div className="bg-muted/40 rounded-lg p-4 group">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         {projeto && (
                           <Badge className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15">{projeto.nome}</Badge>
                         )}
                         <Badge variant="outline">{a.tipo}</Badge>
+                        {a.editado && (
+                          <Badge className="bg-ocre/20 text-ocre-foreground border border-ocre/40">Editado</Badge>
+                        )}
                         <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3" />{formatDate(a.data)}
                         </span>
+                        <div className="ml-auto flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(a)} aria-label="Editar">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setToDelete(a)} aria-label="Excluir">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-sm">{a.descricao}</p>
                       <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
@@ -186,18 +293,16 @@ function AtividadesPage() {
               </div>
             </>
           )}
-
-          {!hasMore && items.length > PAGE_SIZE && (
-            <div className="mt-6 text-center text-xs text-muted-foreground">Você chegou ao fim do histórico.</div>
-          )}
         </CardContent>
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Atividade</DialogTitle>
-            <DialogDescription>Registre uma nova atividade do projeto.</DialogDescription>
+            <DialogTitle>{editingId ? "Editar Atividade" : "Nova Atividade"}</DialogTitle>
+            <DialogDescription>
+              {editingId ? "Atualize os dados da atividade." : "Registre uma nova atividade do projeto."}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -293,10 +398,25 @@ function AtividadesPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar Atividade</Button>
+            <Button onClick={handleSave}>{editingId ? "Salvar alterações" : "Salvar Atividade"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja excluir esta atividade?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

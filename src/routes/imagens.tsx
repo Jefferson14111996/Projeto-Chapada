@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, ImageIcon, Download, MapPin, Calendar, Tag, FolderOpen, Trash2 } from "lucide-react";
+import { Upload, Download, MapPin, Calendar, Tag, FolderOpen, Trash2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,8 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { addImagem, removeImagem, useImagens, type ImagemItem } from "@/lib/imagensStore";
+import { addImagem, removeImagem, updateImagem, useImagens, type ImagemItem } from "@/lib/imagensStore";
 import { projetosMock, MUNICIPIOS } from "@/lib/mockData";
+import { addNotification } from "@/lib/notificationsStore";
+import { useGlobalSearch } from "@/contexts/SearchContext";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/imagens")({
@@ -35,14 +37,26 @@ interface PendingFile {
   dataUrl: string;
 }
 
+const emptyForm = { projeto: "", local: "", tipo: "", date: "" };
+
 function ImagensPage() {
   const imgs = useImagens();
+  const { query } = useGlobalSearch();
   const [selected, setSelected] = useState<ImagemItem | null>(null);
   const [toDelete, setToDelete] = useState<ImagemItem | null>(null);
+  const [editing, setEditing] = useState<ImagemItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingFile | null>(null);
-  const [form, setForm] = useState({ projeto: "", local: "", tipo: "", date: "" });
+  const [form, setForm] = useState(emptyForm);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return imgs;
+    return imgs.filter((i) =>
+      [i.projeto, i.local, i.tipo, i.date, i.nomeArquivo].join(" ").toLowerCase().includes(q),
+    );
+  }, [imgs, query]);
 
   const openPicker = () => fileInputRef.current?.click();
 
@@ -86,8 +100,29 @@ function ImagensPage() {
       dataUrl: pending.dataUrl,
       nomeArquivo: pending.file.name,
     });
+    addNotification({
+      type: "imagem",
+      title: "Nova imagem enviada",
+      body: `${form.projeto} — ${form.local}`,
+    });
     toast.success("Imagem adicionada à galeria.");
     setPending(null);
+  };
+
+  const openEdit = (img: ImagemItem) => {
+    setEditing(img);
+    setForm({ projeto: img.projeto, local: img.local, tipo: img.tipo, date: img.date });
+  };
+
+  const handleEditSave = () => {
+    if (!editing) return;
+    if (!form.projeto || !form.local || !form.tipo || !form.date) {
+      toast.error("Preencha todos os campos.");
+      return;
+    }
+    updateImagem(editing.id, { ...form });
+    toast.success("Imagem atualizada.");
+    setEditing(null);
   };
 
   const handleDelete = () => {
@@ -105,6 +140,9 @@ function ImagensPage() {
     a.click();
     document.body.removeChild(a);
   };
+
+  const editorOpen = !!pending || !!editing;
+  const isEditMode = !!editing;
 
   return (
     <AppLayout
@@ -125,30 +163,45 @@ function ImagensPage() {
         </>
       }
     >
-      {imgs.length === 0 ? (
+      {filtered.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground text-sm">
-            Nenhuma imagem na galeria. Clique em "Enviar Imagens" para começar.
+            {query
+              ? "Nenhuma imagem encontrada para esta busca."
+              : 'Nenhuma imagem na galeria. Clique em "Enviar Imagens" para começar.'}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {imgs.map((img) => (
+          {filtered.map((img) => (
             <Card
               key={img.id}
               className="overflow-hidden group cursor-pointer hover:shadow-[var(--shadow-elevated)] transition-shadow relative"
             >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setToDelete(img);
-                }}
-                className="absolute top-2 right-2 z-10 h-8 w-8 grid place-items-center rounded-md bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-destructive/90"
-                aria-label="Excluir imagem"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEdit(img);
+                  }}
+                  className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+                  aria-label="Editar imagem"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setToDelete(img);
+                  }}
+                  className="h-8 w-8 grid place-items-center rounded-md bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90"
+                  aria-label="Excluir imagem"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
               <div
                 onClick={() => setSelected(img)}
                 className="aspect-square relative bg-muted overflow-hidden"
@@ -174,60 +227,66 @@ function ImagensPage() {
         </div>
       )}
 
-      {/* Modal de upload (metadados) */}
-      <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+      {/* Modal de upload/edição */}
+      <Dialog open={editorOpen} onOpenChange={(o) => { if (!o) { setPending(null); setEditing(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Imagem</DialogTitle>
-            <DialogDescription>Preencha os dados da imagem enviada.</DialogDescription>
+            <DialogTitle>{isEditMode ? "Editar Imagem" : "Nova Imagem"}</DialogTitle>
+            <DialogDescription>
+              {isEditMode ? "Atualize os dados desta imagem." : "Preencha os dados da imagem enviada."}
+            </DialogDescription>
           </DialogHeader>
-          {pending && (
-            <div className="space-y-3">
-              <div className="aspect-video rounded-md overflow-hidden bg-muted">
-                <img src={pending.dataUrl} alt="preview" className="w-full h-full object-contain" />
-              </div>
-              <div>
-                <Label>Projeto</Label>
-                <Select value={form.projeto} onValueChange={(v) => setForm((f) => ({ ...f, projeto: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {projetosMock.map((p) => (
-                      <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Município / Local</Label>
-                <Select value={form.local} onValueChange={(v) => setForm((f) => ({ ...f, local: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {MUNICIPIOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Tipo de Ação</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Data</Label>
-                <Input
-                  placeholder="dd/mm/aaaa"
-                  value={form.date}
-                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                />
-              </div>
+          <div className="space-y-3">
+            <div className="aspect-video rounded-md overflow-hidden bg-muted">
+              <img
+                src={pending?.dataUrl ?? editing?.dataUrl ?? ""}
+                alt="preview"
+                className="w-full h-full object-contain"
+              />
             </div>
-          )}
+            <div>
+              <Label>Projeto</Label>
+              <Select value={form.projeto} onValueChange={(v) => setForm((f) => ({ ...f, projeto: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {projetosMock.map((p) => (
+                    <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Município / Local</Label>
+              <Select value={form.local} onValueChange={(v) => setForm((f) => ({ ...f, local: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {MUNICIPIOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Tipo de Ação</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Data</Label>
+              <Input
+                placeholder="dd/mm/aaaa"
+                value={form.date}
+                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPending(null)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button variant="outline" onClick={() => { setPending(null); setEditing(null); }}>Cancelar</Button>
+            <Button onClick={isEditMode ? handleEditSave : handleSave}>
+              {isEditMode ? "Salvar alterações" : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -275,7 +334,6 @@ function ImagensPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação exclusão */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
