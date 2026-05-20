@@ -43,7 +43,7 @@ function EsqueciSenhaPage() {
       setDemoSent(true);
       setSubmitting(false);
       setStep("code");
-      toast.success("Código de demonstração gerado!");
+      toast.success("Código enviado para o seu e-mail.");
     }, 400);
   };
 
