@@ -63,17 +63,30 @@ function EsqueciSenhaPage() {
     if (!match) return;
     setSubmitting(true);
     setTimeout(() => {
-      setSubmitting(false);
-      setStep("done");
+      try {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("chapada.flash", "password_reset");
+        }
+        setStep("done");
+      } catch (err) {
+        console.error("savePassword error", err);
+        toast.error("Não foi possível salvar a senha. Tente novamente.");
+      } finally {
+        setSubmitting(false);
+      }
     }, 400);
   };
 
   useEffect(() => {
     if (step !== "done") return;
-    const t = setTimeout(
-      () => navigate({ to: "/login", search: { msg: "password_reset" } }),
-      3000,
-    );
+    const t = setTimeout(() => {
+      try {
+        navigate({ to: "/login" });
+      } catch (err) {
+        console.error(err);
+        if (typeof window !== "undefined") window.location.href = "/login";
+      }
+    }, 3000);
     return () => clearTimeout(t);
   }, [step, navigate]);
 
