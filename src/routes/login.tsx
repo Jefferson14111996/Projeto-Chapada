@@ -29,9 +29,14 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (msg === "registered") {
+    let flash: string | null = msg ?? null;
+    if (!flash && typeof window !== "undefined") {
+      flash = sessionStorage.getItem("chapada.flash");
+      if (flash) sessionStorage.removeItem("chapada.flash");
+    }
+    if (flash === "registered") {
       toast.success("Conta criada com sucesso! Faça seu login.");
-    } else if (msg === "password_reset") {
+    } else if (flash === "password_reset") {
       toast.success("Senha alterada com sucesso!");
     }
   }, [msg]);
