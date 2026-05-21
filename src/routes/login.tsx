@@ -52,21 +52,27 @@ function LoginPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(
-        error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos."
-          : error.message,
-      );
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        toast.error(
+          error.message === "Invalid login credentials"
+            ? "E-mail ou senha incorretos."
+            : error.message,
+        );
+        return;
+      }
+      toast.success("Bem-vindo de volta!");
+      navigate({ to: "/" });
+    } catch (err) {
+      console.error("login error", err);
+      toast.error("Erro de conexão. Verifique sua internet e tente novamente.");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Bem-vindo de volta!");
-    navigate({ to: "/" });
   };
 
   return (
