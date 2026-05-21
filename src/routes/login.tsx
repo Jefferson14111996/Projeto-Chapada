@@ -29,9 +29,14 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (msg === "registered") {
+    let flash: string | null = msg ?? null;
+    if (!flash && typeof window !== "undefined") {
+      flash = sessionStorage.getItem("chapada.flash");
+      if (flash) sessionStorage.removeItem("chapada.flash");
+    }
+    if (flash === "registered") {
       toast.success("Conta criada com sucesso! Faça seu login.");
-    } else if (msg === "password_reset") {
+    } else if (flash === "password_reset") {
       toast.success("Senha alterada com sucesso!");
     }
   }, [msg]);
@@ -47,21 +52,27 @@ function LoginPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(
-        error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos."
-          : error.message,
-      );
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        toast.error(
+          error.message === "Invalid login credentials"
+            ? "E-mail ou senha incorretos."
+            : error.message,
+        );
+        return;
+      }
+      toast.success("Bem-vindo de volta!");
+      navigate({ to: "/" });
+    } catch (err) {
+      console.error("login error", err);
+      toast.error("Erro de conexão. Verifique sua internet e tente novamente.");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Bem-vindo de volta!");
-    navigate({ to: "/" });
   };
 
   return (

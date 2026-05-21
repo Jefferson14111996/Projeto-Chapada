@@ -62,19 +62,35 @@ function RegistroPage() {
     if (!canCreate) return;
     setSubmitting(true);
     setTimeout(() => {
-      setProfile(email, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        password: pwd,
-      });
-      setSubmitting(false);
-      setStep("done");
+      try {
+        setProfile(email, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          password: pwd,
+        });
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("chapada.flash", "registered");
+        }
+        setStep("done");
+      } catch (err) {
+        console.error("createAccount error", err);
+        toast.error("Não foi possível criar sua conta. Tente novamente.");
+      } finally {
+        setSubmitting(false);
+      }
     }, 500);
   };
 
   useEffect(() => {
     if (step !== "done") return;
-    const t = setTimeout(() => navigate({ to: "/login", search: { msg: "registered" } }), 3000);
+    const t = setTimeout(() => {
+      try {
+        navigate({ to: "/login" });
+      } catch (err) {
+        console.error(err);
+        if (typeof window !== "undefined") window.location.href = "/login";
+      }
+    }, 3000);
     return () => clearTimeout(t);
   }, [step, navigate]);
 
