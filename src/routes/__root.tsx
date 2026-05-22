@@ -104,20 +104,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useSeedOwnership();
   return (
     <AuthProvider>
       <SearchProvider>
-        <SeedRunner />
         <Outlet />
         <Toaster richColors position="top-right" />
       </SearchProvider>
     </AuthProvider>
   );
-}
-
-function SeedRunner() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useSeedOwnership } = require("@/lib/useSeedOwnership") as typeof import("@/lib/useSeedOwnership");
-  useSeedOwnership();
-  return null;
 }
