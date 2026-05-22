@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SearchProvider } from "@/contexts/SearchContext";
+import { useSeedOwnership } from "@/lib/useSeedOwnership";
 
 import appCss from "../styles.css?url";
 
@@ -103,6 +104,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useSeedOwnership();
   return (
     <AuthProvider>
       <SearchProvider>
