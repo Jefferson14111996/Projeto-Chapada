@@ -252,9 +252,7 @@ function AtividadesPage() {
                           <Badge className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15">{projeto.nome}</Badge>
                         )}
                         <Badge variant="outline">{a.tipo}</Badge>
-                        {a.editado && (
-                          <Badge className="bg-ocre/20 text-ocre-foreground border border-ocre/40">Editado</Badge>
-                        )}
+                        {/* "Editado" badge removed per spec */}
                         <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3" />{formatDate(a.data)}
                         </span>
