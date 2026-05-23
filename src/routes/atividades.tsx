@@ -408,7 +408,14 @@ function AtividadesPage() {
                 </ul>
               )}
             </div>
+            {editingId && editingOwnership && (
+              <div className="md:col-span-2">
+                <CollaboratorsSection type="atividade" id={editingId} ownership={editingOwnership} currentEmail={currentEmail} />
+              </div>
+            )}
           </div>
+
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
