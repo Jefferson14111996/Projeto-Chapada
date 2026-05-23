@@ -297,6 +297,9 @@ function ImagensPage() {
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
               />
             </div>
+            {isEditMode && editing && editingOwnership && (
+              <CollaboratorsSection type="imagem" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setPending(null); setEditing(null); }}>Cancelar</Button>
