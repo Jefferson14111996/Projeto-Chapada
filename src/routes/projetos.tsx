@@ -96,11 +96,13 @@ function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>(projetosMock);
   const [search, setSearch] = useState("");
   const { query: globalQuery } = useGlobalSearch();
+  const { email: currentEmail, name: currentName } = useCurrentUser();
   const [fFin, setFFin] = useState<string>("todos");
   const [fMun, setFMun] = useState<string>("todos");
   const [fStatus, setFStatus] = useState<string>("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Projeto>(empty);
+  const editingOwnership = useOwnership("projeto", editing.id);
 
   const filtered = useMemo(() => {
     const gq = globalQuery.trim().toLowerCase();
@@ -119,6 +121,7 @@ function ProjetosPage() {
     setOpen(true);
   };
   const openEdit = (p: Projeto) => {
+    if (!canEdit("projeto", p.id, currentEmail)) { denyToast(); return; }
     setEditing(p);
     setOpen(true);
   };
@@ -129,17 +132,23 @@ function ProjetosPage() {
       return;
     }
     if (editing.id) {
+      if (!canEdit("projeto", editing.id, currentEmail)) { denyToast(); return; }
       setProjetos((prev) => prev.map((p) => (p.id === editing.id ? editing : p)));
       toast.success("Projeto atualizado.");
     } else {
-      setProjetos((prev) => [{ ...editing, id: crypto.randomUUID() }, ...prev]);
+      const id = crypto.randomUUID();
+      setProjetos((prev) => [{ ...editing, id }, ...prev]);
+      setOwnership("projeto", id, makeOwnership(currentEmail, currentName));
+      addNotification({ type: "projeto", title: "Novo projeto cadastrado", body: editing.nome });
       toast.success("Projeto cadastrado.");
     }
     setOpen(false);
   };
 
   const remove = (id: string) => {
+    if (!canEdit("projeto", id, currentEmail)) { denyToast(); return; }
     setProjetos((prev) => prev.filter((p) => p.id !== id));
+    removeOwnership("projeto", id);
     toast.success("Projeto removido.");
   };
 
