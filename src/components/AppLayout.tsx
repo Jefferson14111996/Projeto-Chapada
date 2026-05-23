@@ -58,6 +58,7 @@ export function AppLayout({
   const { query, setQuery } = useGlobalSearch();
   const notifications = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) {
