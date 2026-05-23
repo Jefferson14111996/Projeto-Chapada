@@ -200,10 +200,12 @@ function AtividadesPage() {
     };
 
     if (editingId) {
+      if (!canEdit("atividade", editingId, currentEmail)) { denyToast(); return; }
       updateAtividade(editingId, payload);
       toast.success("Atividade atualizada.");
     } else {
-      addAtividade(payload);
+      const newId = addAtividade(payload);
+      setOwnership("atividade", newId, makeOwnership(currentEmail, currentName));
       addNotification({
         type: "atividade",
         title: "Nova atividade cadastrada",
@@ -219,9 +221,16 @@ function AtividadesPage() {
 
   const confirmDelete = () => {
     if (!toDelete) return;
+    if (!canEdit("atividade", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
     deleteAtividade(toDelete.id);
+    removeOwnership("atividade", toDelete.id);
     setToDelete(null);
     toast.success("Atividade excluída.");
+  };
+
+  const requestDelete = (a: AtividadeFull) => {
+    if (!canEdit("atividade", a.id, currentEmail)) { denyToast(); return; }
+    setToDelete(a);
   };
 
   return (
