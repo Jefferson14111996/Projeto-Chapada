@@ -292,6 +292,11 @@ function ProjetosPage() {
                   onChange={(e) => setEditing({ ...editing, publicoCaract: e.target.value })}
                 />
               </div>
+              {editing.id && editingOwnership && (
+                <div className="md:col-span-2">
+                  <CollaboratorsSection type="projeto" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>
