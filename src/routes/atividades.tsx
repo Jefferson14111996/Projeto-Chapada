@@ -30,6 +30,9 @@ import {
 } from "@/lib/atividadesStore";
 import { addNotification } from "@/lib/notificationsStore";
 import { useGlobalSearch } from "@/contexts/SearchContext";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/atividades")({
