@@ -448,6 +448,11 @@ function TecnologiaModal({
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
           </div>
+          {editing && editingOwnership && (
+            <div className="md:col-span-2">
+              <CollaboratorsSection type="tecnologia" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
