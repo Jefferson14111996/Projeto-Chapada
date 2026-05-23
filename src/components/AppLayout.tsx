@@ -206,7 +206,10 @@ export function AppLayout({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2">
-                <UserCog className="h-4 w-4" /> Alterar dados
+                <UserCog className="h-4 w-4" /> Editar perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="gap-2">
+                <KeyRound className="h-4 w-4" /> Alterar senha
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
