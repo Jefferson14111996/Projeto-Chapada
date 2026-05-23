@@ -236,6 +236,7 @@ function ImagensPage() {
                 <Badge variant="secondary" className="text-[10px] mt-2">
                   {img.tipo}
                 </Badge>
+                {(() => { const o = getOwnership("imagem", img.id); return o ? <div className="text-[10px] text-muted-foreground mt-1">Criado por {o.ownerName}</div> : null; })()}
               </CardContent>
             </Card>
           ))}
