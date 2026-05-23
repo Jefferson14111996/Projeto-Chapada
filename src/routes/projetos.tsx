@@ -391,6 +391,7 @@ function ProjetosPage() {
                     <TableCell>
                       <div className="font-medium">{p.nome}</div>
                       <div className="text-xs text-muted-foreground">{p.contrato}</div>
+                      {(() => { const o = getOwnership("projeto", p.id); return o ? <div className="text-[10px] text-muted-foreground mt-0.5">Criado por {o.ownerName}</div> : null; })()}
                     </TableCell>
                     <TableCell className="text-sm">{p.financiador}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap min-w-[140px]">
