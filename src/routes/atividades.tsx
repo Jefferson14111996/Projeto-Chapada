@@ -167,6 +167,7 @@ function AtividadesPage() {
   };
 
   const openEdit = (a: AtividadeFull) => {
+    if (!canEdit("atividade", a.id, currentEmail)) { denyToast(); return; }
     setEditingId(a.id);
     setForm(toFormState(a));
     setAnexos(a.anexos ?? []);
