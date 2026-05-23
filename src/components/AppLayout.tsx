@@ -235,6 +235,14 @@ export function AppLayout({
         onOpenChange={setProfileOpen}
         email={email}
         profile={profile}
+        mode="profile"
+      />
+      <ProfileModal
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+        email={email}
+        profile={profile}
+        mode="password"
       />
     </div>
   );
