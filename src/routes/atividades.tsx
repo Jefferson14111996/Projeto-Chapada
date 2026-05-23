@@ -287,6 +287,7 @@ function AtividadesPage() {
                         {a.anexos && a.anexos.length > 0 && (
                           <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" />{a.anexos.length} anexo(s)</span>
                         )}
+                        {(() => { const o = getOwnership("atividade", a.id); return o ? <span className="ml-auto text-[10px]">Criado por {o.ownerName}</span> : null; })()}
                       </div>
                     </div>
                   </li>
