@@ -178,7 +178,10 @@ function TecnologiasPage() {
                             <TableCell className="text-sm text-muted-foreground">
                               {t.municipios}
                             </TableCell>
-                            <TableCell className="text-sm">{projeto?.nome ?? "—"}</TableCell>
+                            <TableCell className="text-sm">
+                              <div>{projeto?.nome ?? "—"}</div>
+                              {(() => { const o = getOwnership("tecnologia", t.id); return o ? <div className="text-[10px] text-muted-foreground mt-0.5">Criado por {o.ownerName}</div> : null; })()}
+                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatDate(t.data)}
                             </TableCell>
@@ -197,7 +200,7 @@ function TecnologiasPage() {
                                 variant="ghost"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
                                 aria-label="Excluir"
-                                onClick={() => setToDelete(t)}
+                                onClick={() => requestDelete(t)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
