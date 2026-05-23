@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, LogOut, Loader2, UserCog, Check, Trash2, MessageSquare, Image as ImageIcon, FolderKanban, Sparkles, ClipboardList } from "lucide-react";
+import { Bell, Search, LogOut, Loader2, UserCog, KeyRound, Check, Trash2, MessageSquare, Image as ImageIcon, FolderKanban, Sparkles, ClipboardList } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
