@@ -97,7 +97,7 @@ function ImagensPage() {
       toast.error("Preencha todos os campos.");
       return;
     }
-    addImagem({
+    const newId = addImagem({
       projeto: form.projeto,
       local: form.local,
       tipo: form.tipo,
@@ -105,6 +105,7 @@ function ImagensPage() {
       dataUrl: pending.dataUrl,
       nomeArquivo: pending.file.name,
     });
+    setOwnership("imagem", newId, makeOwnership(currentEmail, currentName));
     addNotification({
       type: "imagem",
       title: "Nova imagem enviada",
@@ -115,12 +116,14 @@ function ImagensPage() {
   };
 
   const openEdit = (img: ImagemItem) => {
+    if (!canEdit("imagem", img.id, currentEmail)) { denyToast(); return; }
     setEditing(img);
     setForm({ projeto: img.projeto, local: img.local, tipo: img.tipo, date: img.date });
   };
 
   const handleEditSave = () => {
     if (!editing) return;
+    if (!canEdit("imagem", editing.id, currentEmail)) { denyToast(); return; }
     if (!form.projeto || !form.local || !form.tipo || !form.date) {
       toast.error("Preencha todos os campos.");
       return;
@@ -130,9 +133,16 @@ function ImagensPage() {
     setEditing(null);
   };
 
+  const requestDelete = (img: ImagemItem) => {
+    if (!canEdit("imagem", img.id, currentEmail)) { denyToast(); return; }
+    setToDelete(img);
+  };
+
   const handleDelete = () => {
     if (!toDelete) return;
+    if (!canEdit("imagem", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
     removeImagem(toDelete.id);
+    removeOwnership("imagem", toDelete.id);
     setToDelete(null);
     toast.success("Imagem excluída.");
   };
