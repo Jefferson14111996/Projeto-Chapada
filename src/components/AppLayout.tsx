@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, LogOut, Loader2, UserCog, Check, Trash2, MessageSquare, Image as ImageIcon, FolderKanban, Sparkles, ClipboardList } from "lucide-react";
+import { Bell, Search, LogOut, Loader2, UserCog, KeyRound, Check, Trash2, MessageSquare, Image as ImageIcon, FolderKanban, Sparkles, ClipboardList } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -58,6 +58,7 @@ export function AppLayout({
   const { query, setQuery } = useGlobalSearch();
   const notifications = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) {
@@ -205,7 +206,10 @@ export function AppLayout({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2">
-                <UserCog className="h-4 w-4" /> Alterar dados
+                <UserCog className="h-4 w-4" /> Editar perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="gap-2">
+                <KeyRound className="h-4 w-4" /> Alterar senha
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
@@ -231,6 +235,14 @@ export function AppLayout({
         onOpenChange={setProfileOpen}
         email={email}
         profile={profile}
+        mode="profile"
+      />
+      <ProfileModal
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+        email={email}
+        profile={profile}
+        mode="password"
       />
     </div>
   );

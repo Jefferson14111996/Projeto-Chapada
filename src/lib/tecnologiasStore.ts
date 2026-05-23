@@ -211,9 +211,11 @@ const subscribe = (cb: () => void) => {
 };
 const emit = () => listeners.forEach((l) => l());
 
-export const addTecnologia = (t: Omit<Tecnologia, "id">) => {
-  tecnologias = [{ ...t, id: `t${Date.now()}` }, ...tecnologias];
+export const addTecnologia = (t: Omit<Tecnologia, "id">): string => {
+  const id = `t${Date.now()}`;
+  tecnologias = [{ ...t, id }, ...tecnologias];
   emit();
+  return id;
 };
 
 export const updateTecnologia = (id: string, t: Omit<Tecnologia, "id">) => {

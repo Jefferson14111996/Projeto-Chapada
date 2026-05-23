@@ -78,9 +78,11 @@ const subscribe = (cb: () => void) => {
 };
 const emit = () => listeners.forEach((l) => l());
 
-export const addImagem = (img: Omit<ImagemItem, "id">) => {
-  imagens = [{ ...img, id: `img${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }, ...imagens];
+export const addImagem = (img: Omit<ImagemItem, "id">): string => {
+  const id = `img${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  imagens = [{ ...img, id }, ...imagens];
   emit();
+  return id;
 };
 
 export const updateImagem = (id: string, patch: Partial<Omit<ImagemItem, "id" | "dataUrl" | "nomeArquivo">>) => {

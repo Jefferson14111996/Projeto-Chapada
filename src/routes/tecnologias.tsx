@@ -50,6 +50,11 @@ import {
   useTecnologias,
 } from "@/lib/tecnologiasStore";
 import { projetosMock, formatDate } from "@/lib/mockData";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
+import { addNotification } from "@/lib/notificationsStore";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/tecnologias")({
   head: () => ({
@@ -68,6 +73,7 @@ const todasCategorias = CATEGORIA_ORDEM;
 
 function TecnologiasPage() {
   const tecnologias = useTecnologias();
+  const { email: currentEmail, name: currentName } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [initialCat, setInitialCat] = useState<CategoriaTec>("hidrica");
   const [editing, setEditing] = useState<Tecnologia | null>(null);
@@ -88,9 +94,15 @@ function TecnologiasPage() {
   };
 
   const openEdit = (t: Tecnologia) => {
+    if (!canEdit("tecnologia", t.id, currentEmail)) { denyToast(); return; }
     setEditing(t);
     setInitialCat(t.categoria);
     setOpen(true);
+  };
+
+  const requestDelete = (t: Tecnologia) => {
+    if (!canEdit("tecnologia", t.id, currentEmail)) { denyToast(); return; }
+    setToDelete(t);
   };
 
   return (
@@ -166,7 +178,10 @@ function TecnologiasPage() {
                             <TableCell className="text-sm text-muted-foreground">
                               {t.municipios}
                             </TableCell>
-                            <TableCell className="text-sm">{projeto?.nome ?? "—"}</TableCell>
+                            <TableCell className="text-sm">
+                              <div>{projeto?.nome ?? "—"}</div>
+                              {(() => { const o = getOwnership("tecnologia", t.id); return o ? <div className="text-[10px] text-muted-foreground mt-0.5">Criado por {o.ownerName}</div> : null; })()}
+                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatDate(t.data)}
                             </TableCell>
@@ -185,7 +200,7 @@ function TecnologiasPage() {
                                 variant="ghost"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
                                 aria-label="Excluir"
-                                onClick={() => setToDelete(t)}
+                                onClick={() => requestDelete(t)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -207,6 +222,8 @@ function TecnologiasPage() {
         onOpenChange={setOpen}
         initialCategoria={initialCat}
         editing={editing}
+        currentEmail={currentEmail}
+        currentName={currentName}
       />
 
       <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
@@ -222,7 +239,11 @@ function TecnologiasPage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (toDelete) deleteTecnologia(toDelete.id);
+                if (toDelete) {
+                  if (!canEdit("tecnologia", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
+                  deleteTecnologia(toDelete.id);
+                  removeOwnership("tecnologia", toDelete.id);
+                }
                 setToDelete(null);
               }}
             >
@@ -240,11 +261,15 @@ function TecnologiaModal({
   onOpenChange,
   initialCategoria,
   editing,
+  currentEmail,
+  currentName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initialCategoria: CategoriaTec;
   editing: Tecnologia | null;
+  currentEmail: string;
+  currentName: string;
 }) {
   const [categoria, setCategoria] = useState<CategoriaTec>(initialCategoria);
   const [nome, setNome] = useState("");
@@ -256,6 +281,7 @@ function TecnologiaModal({
   const [projetoId, setProjetoId] = useState<string>("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [observacoes, setObservacoes] = useState("");
+  const editingOwnership = useOwnership("tecnologia", editing?.id ?? "");
 
   useEffect(() => {
     if (!open) return;
@@ -300,10 +326,19 @@ function TecnologiaModal({
       data,
       observacoes: observacoes || undefined,
     };
-    if (editing) updateTecnologia(editing.id, payload);
-    else addTecnologia(payload);
+    if (editing) {
+      if (!canEdit("tecnologia", editing.id, currentEmail)) { denyToast(); return; }
+      updateTecnologia(editing.id, payload);
+      toast.success("Tecnologia atualizada.");
+    } else {
+      const newId = addTecnologia(payload);
+      setOwnership("tecnologia", newId, makeOwnership(currentEmail, currentName));
+      addNotification({ type: "tecnologia", title: "Nova tecnologia cadastrada", body: nome });
+      toast.success("Tecnologia cadastrada.");
+    }
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -413,6 +448,11 @@ function TecnologiaModal({
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
           </div>
+          {editing && editingOwnership && (
+            <div className="md:col-span-2">
+              <CollaboratorsSection type="tecnologia" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

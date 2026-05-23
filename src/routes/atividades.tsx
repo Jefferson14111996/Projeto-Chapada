@@ -30,6 +30,9 @@ import {
 } from "@/lib/atividadesStore";
 import { addNotification } from "@/lib/notificationsStore";
 import { useGlobalSearch } from "@/contexts/SearchContext";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/atividades")({
@@ -94,6 +97,8 @@ function AtividadesPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [toDelete, setToDelete] = useState<AtividadeFull | null>(null);
+  const { email: currentEmail, name: currentName } = useCurrentUser();
+  const editingOwnership = useOwnership("atividade", editingId ?? "");
 
   const projetoMap = useMemo(
     () => new Map(projetosMock.map((p) => [p.id, p])),
@@ -162,6 +167,7 @@ function AtividadesPage() {
   };
 
   const openEdit = (a: AtividadeFull) => {
+    if (!canEdit("atividade", a.id, currentEmail)) { denyToast(); return; }
     setEditingId(a.id);
     setForm(toFormState(a));
     setAnexos(a.anexos ?? []);
@@ -194,10 +200,12 @@ function AtividadesPage() {
     };
 
     if (editingId) {
+      if (!canEdit("atividade", editingId, currentEmail)) { denyToast(); return; }
       updateAtividade(editingId, payload);
       toast.success("Atividade atualizada.");
     } else {
-      addAtividade(payload);
+      const newId = addAtividade(payload);
+      setOwnership("atividade", newId, makeOwnership(currentEmail, currentName));
       addNotification({
         type: "atividade",
         title: "Nova atividade cadastrada",
@@ -213,9 +221,16 @@ function AtividadesPage() {
 
   const confirmDelete = () => {
     if (!toDelete) return;
+    if (!canEdit("atividade", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
     deleteAtividade(toDelete.id);
+    removeOwnership("atividade", toDelete.id);
     setToDelete(null);
     toast.success("Atividade excluída.");
+  };
+
+  const requestDelete = (a: AtividadeFull) => {
+    if (!canEdit("atividade", a.id, currentEmail)) { denyToast(); return; }
+    setToDelete(a);
   };
 
   return (
@@ -260,7 +275,7 @@ function AtividadesPage() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(a)} aria-label="Editar">
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setToDelete(a)} aria-label="Excluir">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => requestDelete(a)} aria-label="Excluir">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -272,6 +287,7 @@ function AtividadesPage() {
                         {a.anexos && a.anexos.length > 0 && (
                           <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" />{a.anexos.length} anexo(s)</span>
                         )}
+                        {(() => { const o = getOwnership("atividade", a.id); return o ? <span className="ml-auto text-[10px]">Criado por {o.ownerName}</span> : null; })()}
                       </div>
                     </div>
                   </li>
@@ -392,7 +408,14 @@ function AtividadesPage() {
                 </ul>
               )}
             </div>
+            {editingId && editingOwnership && (
+              <div className="md:col-span-2">
+                <CollaboratorsSection type="atividade" id={editingId} ownership={editingOwnership} currentEmail={currentEmail} />
+              </div>
+            )}
           </div>
+
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

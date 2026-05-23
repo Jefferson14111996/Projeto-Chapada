@@ -23,6 +23,9 @@ import { addImagem, removeImagem, updateImagem, useImagens, type ImagemItem } fr
 import { projetosMock, MUNICIPIOS } from "@/lib/mockData";
 import { addNotification } from "@/lib/notificationsStore";
 import { useGlobalSearch } from "@/contexts/SearchContext";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/imagens")({
@@ -42,9 +45,11 @@ const emptyForm = { projeto: "", local: "", tipo: "", date: "" };
 function ImagensPage() {
   const imgs = useImagens();
   const { query } = useGlobalSearch();
+  const { email: currentEmail, name: currentName } = useCurrentUser();
   const [selected, setSelected] = useState<ImagemItem | null>(null);
   const [toDelete, setToDelete] = useState<ImagemItem | null>(null);
   const [editing, setEditing] = useState<ImagemItem | null>(null);
+  const editingOwnership = useOwnership("imagem", editing?.id ?? "");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingFile | null>(null);
@@ -92,7 +97,7 @@ function ImagensPage() {
       toast.error("Preencha todos os campos.");
       return;
     }
-    addImagem({
+    const newId = addImagem({
       projeto: form.projeto,
       local: form.local,
       tipo: form.tipo,
@@ -100,6 +105,7 @@ function ImagensPage() {
       dataUrl: pending.dataUrl,
       nomeArquivo: pending.file.name,
     });
+    setOwnership("imagem", newId, makeOwnership(currentEmail, currentName));
     addNotification({
       type: "imagem",
       title: "Nova imagem enviada",
@@ -110,12 +116,14 @@ function ImagensPage() {
   };
 
   const openEdit = (img: ImagemItem) => {
+    if (!canEdit("imagem", img.id, currentEmail)) { denyToast(); return; }
     setEditing(img);
     setForm({ projeto: img.projeto, local: img.local, tipo: img.tipo, date: img.date });
   };
 
   const handleEditSave = () => {
     if (!editing) return;
+    if (!canEdit("imagem", editing.id, currentEmail)) { denyToast(); return; }
     if (!form.projeto || !form.local || !form.tipo || !form.date) {
       toast.error("Preencha todos os campos.");
       return;
@@ -125,9 +133,16 @@ function ImagensPage() {
     setEditing(null);
   };
 
+  const requestDelete = (img: ImagemItem) => {
+    if (!canEdit("imagem", img.id, currentEmail)) { denyToast(); return; }
+    setToDelete(img);
+  };
+
   const handleDelete = () => {
     if (!toDelete) return;
+    if (!canEdit("imagem", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
     removeImagem(toDelete.id);
+    removeOwnership("imagem", toDelete.id);
     setToDelete(null);
     toast.success("Imagem excluída.");
   };
@@ -194,7 +209,7 @@ function ImagensPage() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setToDelete(img);
+                    requestDelete(img);
                   }}
                   className="h-8 w-8 grid place-items-center rounded-md bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90"
                   aria-label="Excluir imagem"
@@ -221,6 +236,7 @@ function ImagensPage() {
                 <Badge variant="secondary" className="text-[10px] mt-2">
                   {img.tipo}
                 </Badge>
+                {(() => { const o = getOwnership("imagem", img.id); return o ? <div className="text-[10px] text-muted-foreground mt-1">Criado por {o.ownerName}</div> : null; })()}
               </CardContent>
             </Card>
           ))}
@@ -281,6 +297,9 @@ function ImagensPage() {
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
               />
             </div>
+            {isEditMode && editing && editingOwnership && (
+              <CollaboratorsSection type="imagem" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setPending(null); setEditing(null); }}>Cancelar</Button>
