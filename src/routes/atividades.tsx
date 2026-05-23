@@ -97,6 +97,8 @@ function AtividadesPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [toDelete, setToDelete] = useState<AtividadeFull | null>(null);
+  const { email: currentEmail, name: currentName } = useCurrentUser();
+  const editingOwnership = useOwnership("atividade", editingId ?? "");
 
   const projetoMap = useMemo(
     () => new Map(projetosMock.map((p) => [p.id, p])),
