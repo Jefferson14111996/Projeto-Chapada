@@ -94,9 +94,15 @@ function TecnologiasPage() {
   };
 
   const openEdit = (t: Tecnologia) => {
+    if (!canEdit("tecnologia", t.id, currentEmail)) { denyToast(); return; }
     setEditing(t);
     setInitialCat(t.categoria);
     setOpen(true);
+  };
+
+  const requestDelete = (t: Tecnologia) => {
+    if (!canEdit("tecnologia", t.id, currentEmail)) { denyToast(); return; }
+    setToDelete(t);
   };
 
   return (
