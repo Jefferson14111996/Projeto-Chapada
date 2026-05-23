@@ -50,6 +50,11 @@ import {
   useTecnologias,
 } from "@/lib/tecnologiasStore";
 import { projetosMock, formatDate } from "@/lib/mockData";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
+import { addNotification } from "@/lib/notificationsStore";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/tecnologias")({
   head: () => ({
