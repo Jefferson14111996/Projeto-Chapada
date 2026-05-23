@@ -56,6 +56,9 @@ import { calcVigenciaProgress } from "@/lib/progress";
 import { toast } from "sonner";
 import { useGlobalSearch } from "@/contexts/SearchContext";
 import { addNotification } from "@/lib/notificationsStore";
+import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { CollaboratorsSection } from "@/components/CollaboratorsSection";
 
 export const Route = createFileRoute("/projetos")({
   head: () => ({
