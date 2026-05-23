@@ -275,7 +275,7 @@ function AtividadesPage() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(a)} aria-label="Editar">
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setToDelete(a)} aria-label="Excluir">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => requestDelete(a)} aria-label="Excluir">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
