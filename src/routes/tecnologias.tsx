@@ -222,6 +222,8 @@ function TecnologiasPage() {
         onOpenChange={setOpen}
         initialCategoria={initialCat}
         editing={editing}
+        currentEmail={currentEmail}
+        currentName={currentName}
       />
 
       <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
@@ -237,7 +239,11 @@ function TecnologiasPage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (toDelete) deleteTecnologia(toDelete.id);
+                if (toDelete) {
+                  if (!canEdit("tecnologia", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
+                  deleteTecnologia(toDelete.id);
+                  removeOwnership("tecnologia", toDelete.id);
+                }
                 setToDelete(null);
               }}
             >
