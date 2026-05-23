@@ -261,11 +261,15 @@ function TecnologiaModal({
   onOpenChange,
   initialCategoria,
   editing,
+  currentEmail,
+  currentName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initialCategoria: CategoriaTec;
   editing: Tecnologia | null;
+  currentEmail: string;
+  currentName: string;
 }) {
   const [categoria, setCategoria] = useState<CategoriaTec>(initialCategoria);
   const [nome, setNome] = useState("");
@@ -277,6 +281,7 @@ function TecnologiaModal({
   const [projetoId, setProjetoId] = useState<string>("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [observacoes, setObservacoes] = useState("");
+  const editingOwnership = useOwnership("tecnologia", editing?.id ?? "");
 
   useEffect(() => {
     if (!open) return;
@@ -321,10 +326,19 @@ function TecnologiaModal({
       data,
       observacoes: observacoes || undefined,
     };
-    if (editing) updateTecnologia(editing.id, payload);
-    else addTecnologia(payload);
+    if (editing) {
+      if (!canEdit("tecnologia", editing.id, currentEmail)) { denyToast(); return; }
+      updateTecnologia(editing.id, payload);
+      toast.success("Tecnologia atualizada.");
+    } else {
+      const newId = addTecnologia(payload);
+      setOwnership("tecnologia", newId, makeOwnership(currentEmail, currentName));
+      addNotification({ type: "tecnologia", title: "Nova tecnologia cadastrada", body: nome });
+      toast.success("Tecnologia cadastrada.");
+    }
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
