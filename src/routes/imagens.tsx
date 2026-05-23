@@ -45,9 +45,11 @@ const emptyForm = { projeto: "", local: "", tipo: "", date: "" };
 function ImagensPage() {
   const imgs = useImagens();
   const { query } = useGlobalSearch();
+  const { email: currentEmail, name: currentName } = useCurrentUser();
   const [selected, setSelected] = useState<ImagemItem | null>(null);
   const [toDelete, setToDelete] = useState<ImagemItem | null>(null);
   const [editing, setEditing] = useState<ImagemItem | null>(null);
+  const editingOwnership = useOwnership("imagem", editing?.id ?? "");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingFile | null>(null);
