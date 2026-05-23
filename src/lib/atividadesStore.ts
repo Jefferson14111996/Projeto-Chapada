@@ -32,9 +32,11 @@ const emit = () => listeners.forEach((l) => l());
 const sortDesc = (arr: AtividadeFull[]) =>
   [...arr].sort((x, y) => y.data.localeCompare(x.data));
 
-export const addAtividade = (a: Omit<AtividadeFull, "id">) => {
-  atividades = sortDesc([{ ...a, id: `a${Date.now()}` }, ...atividades]);
+export const addAtividade = (a: Omit<AtividadeFull, "id">): string => {
+  const id = `a${Date.now()}`;
+  atividades = sortDesc([{ ...a, id }, ...atividades]);
   emit();
+  return id;
 };
 
 export const updateAtividade = (id: string, patch: Partial<AtividadeFull>) => {
