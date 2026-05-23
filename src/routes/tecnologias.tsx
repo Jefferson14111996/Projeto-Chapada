@@ -73,6 +73,7 @@ const todasCategorias = CATEGORIA_ORDEM;
 
 function TecnologiasPage() {
   const tecnologias = useTecnologias();
+  const { email: currentEmail, name: currentName } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [initialCat, setInitialCat] = useState<CategoriaTec>("hidrica");
   const [editing, setEditing] = useState<Tecnologia | null>(null);
