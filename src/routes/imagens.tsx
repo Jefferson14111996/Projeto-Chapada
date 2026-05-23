@@ -209,7 +209,7 @@ function ImagensPage() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setToDelete(img);
+                    requestDelete(img);
                   }}
                   className="h-8 w-8 grid place-items-center rounded-md bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90"
                   aria-label="Excluir imagem"
