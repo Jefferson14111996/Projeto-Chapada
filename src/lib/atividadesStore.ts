@@ -27,7 +27,7 @@ export interface AtividadeFull {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let atividades: AtividadeFull[] = [];
-let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 const listeners = new Set<() => void>();
 
@@ -61,23 +61,27 @@ function rowToAtividade(row: any): AtividadeFull {
   };
 }
 
-// ─── Initialize (lazy, called once) ───────────────────────────────────────────
+// ─── Initialize (lazy, concurrent-safe) ───────────────────────────────────────
 export const initAtividades = async () => {
-  if (initialized) return;
-  initialized = true;
+  if (initPromise) return initPromise;
 
-  const { data, error } = await supabase
-    .from("atividades")
-    .select("*")
-    .order("data", { ascending: false });
+  initPromise = (async () => {
+    const { data, error } = await supabase
+      .from("atividades")
+      .select("*")
+      .order("data", { ascending: false });
 
-  if (error) {
-    console.error("[atividadesStore] init error:", error);
-    return;
-  }
+    if (error) {
+      console.error("[atividadesStore] init error:", error);
+      initPromise = null; // permite tentar novamente
+      return;
+    }
 
-  atividades = sortDesc((data ?? []).map(rowToAtividade));
-  emit();
+    atividades = sortDesc((data ?? []).map(rowToAtividade));
+    emit();
+  })();
+
+  return initPromise;
 };
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
@@ -95,6 +99,8 @@ export const addAtividade = async (
       local: a.local || null,
       municipio: a.municipio || null,
       responsaveis: a.responsaveis || null,
+      indicadores: a.indicadores || null,
+      anexos: a.anexos || null,
     })
     .select()
     .single();
@@ -123,6 +129,10 @@ export const updateAtividade = async (
   if (patch.municipio !== undefined) updatePayload.municipio = patch.municipio;
   if (patch.responsaveis !== undefined)
     updatePayload.responsaveis = patch.responsaveis;
+  if (patch.indicadores !== undefined)
+    updatePayload.indicadores = patch.indicadores;
+  if (patch.anexos !== undefined)
+    updatePayload.anexos = patch.anexos;
 
   const { error } = await supabase
     .from("atividades")

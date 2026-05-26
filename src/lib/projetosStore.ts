@@ -18,7 +18,7 @@ export interface ProjetoDB {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let projetos: ProjetoDB[] = [];
-let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 const listeners = new Set<() => void>();
 
@@ -49,22 +49,30 @@ function rowToProjeto(row: any): ProjetoDB {
 }
 
 // ─── Initialize ───────────────────────────────────────────────────────────────
-export const initProjetos = async () => {
-  if (initialized) return;
-  initialized = true;
+export const initProjetos = async (force = false) => {
+  if (initPromise) return initPromise;
+  if (projetos.length > 0 && !force) return;
 
-  const { data, error } = await supabase
-    .from("projetos")
-    .select("*")
-    .order("created_at", { ascending: false });
+  initPromise = (async () => {
+    const { data, error } = await supabase
+      .from("projetos")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("[projetosStore] init error:", error);
-    return;
+    if (error) {
+      console.error("[projetosStore] init error:", error);
+      return;
+    }
+
+    projetos = (data ?? []).map(rowToProjeto);
+    emit();
+  })();
+
+  try {
+    await initPromise;
+  } finally {
+    initPromise = null;
   }
-
-  projetos = (data ?? []).map(rowToProjeto);
-  emit();
 };
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
@@ -152,7 +160,7 @@ export const getSnapshot = () => projetos;
 
 export const useProjetos = (): ProjetoDB[] => {
   useEffect(() => {
-    initProjetos();
+    initProjetos(true); // Recarrega sempre ao montar o hook/tela para manter sincronizado
   }, []);
 
   return useSyncExternalStore(subscribe, getSnapshot, () => projetos);

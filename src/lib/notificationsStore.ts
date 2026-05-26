@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type NotificationType =
   | "atividade"
@@ -17,34 +18,7 @@ export interface AppNotification {
   from?: string; // sender name for messages
 }
 
-const seed: AppNotification[] = [
-  {
-    id: "n-seed-1",
-    type: "atividade",
-    title: "Nova atividade cadastrada",
-    body: "Oficina de manejo de sementes — Araripina",
-    createdAt: Date.now() - 1000 * 60 * 60 * 2,
-    read: false,
-  },
-  {
-    id: "n-seed-2",
-    type: "imagem",
-    title: "Imagens enviadas",
-    body: "3 novas fotos no Banco de Imagens",
-    createdAt: Date.now() - 1000 * 60 * 60 * 12,
-    read: false,
-  },
-  {
-    id: "n-seed-3",
-    type: "tecnologia",
-    title: "Tecnologia social adicionada",
-    body: "Cisterna de placas em Bodocó",
-    createdAt: Date.now() - 1000 * 60 * 60 * 36,
-    read: true,
-  },
-];
-
-let items: AppNotification[] = seed;
+let items: AppNotification[] = [];
 
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {
@@ -55,32 +29,134 @@ const subscribe = (cb: () => void) => {
 };
 const emit = () => listeners.forEach((l) => l());
 
-export const addNotification = (n: Omit<AppNotification, "id" | "createdAt" | "read">) => {
-  items = [
-    {
-      ...n,
-      id: `n${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      createdAt: Date.now(),
-      read: false,
-    },
-    ...items,
-  ];
-  emit();
+function rowToNotification(row: any): AppNotification {
+  return {
+    id: row.id,
+    type: (row.tipo as NotificationType) || "mensagem",
+    title: row.titulo ?? "",
+    body: row.mensagem ?? "",
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    read: row.lida ?? false,
+    from: row.remetente ?? undefined,
+  };
+}
+
+let fetchPromise: Promise<void> | null = null;
+
+export const fetchNotifications = async () => {
+  if (fetchPromise) return fetchPromise;
+
+  fetchPromise = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("notificacoes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("[NotificationsStore] error loading from Supabase:", error);
+        return;
+      }
+
+      if (data) {
+        items = data.map(rowToNotification);
+        emit();
+      }
+    } catch (err) {
+      console.error("[NotificationsStore] exception loading notifications:", err);
+    } finally {
+      fetchPromise = null;
+    }
+  })();
+
+  return fetchPromise;
 };
 
-export const markAllRead = () => {
-  items = items.map((i) => ({ ...i, read: true }));
-  emit();
+export const addNotification = async (n: Omit<AppNotification, "id" | "createdAt" | "read">) => {
+  try {
+    // Busca todos os perfis cadastrados para enviar a notificação para todos os membros da equipe
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id");
+
+    if (profilesError) throw profilesError;
+
+    if (profiles && profiles.length > 0) {
+      const inserts = profiles.map((p) => ({
+        usuario_id: p.id,
+        titulo: n.title,
+        mensagem: n.body || "",
+        tipo: n.type,
+        remetente: n.from || null,
+        lida: false,
+      }));
+
+      const { error } = await supabase.from("notificacoes").insert(inserts);
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.error("[NotificationsStore] error adding notification:", err);
+  }
 };
 
-export const clearAll = () => {
-  items = [];
-  emit();
+export const markAllRead = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("notificacoes")
+      .update({ lida: true })
+      .eq("usuario_id", user.id);
+
+    if (error) throw error;
+    await fetchNotifications();
+  } catch (err) {
+    console.error("[NotificationsStore] error marking read:", err);
+  }
 };
 
-export const useNotifications = () =>
-  useSyncExternalStore(
+export const clearAll = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("notificacoes")
+      .delete()
+      .eq("usuario_id", user.id);
+
+    if (error) throw error;
+    await fetchNotifications();
+  } catch (err) {
+    console.error("[NotificationsStore] error clearing notifications:", err);
+  }
+};
+
+export const useNotifications = () => {
+  useEffect(() => {
+    fetchNotifications();
+
+    // Ouvir atualizações em tempo real das notificações da tabela public.notificacoes
+    const channel = supabase
+      .channel("notificacoes-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notificacoes" },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return useSyncExternalStore(
     subscribe,
     () => items,
     () => items,
   );
+};

@@ -243,11 +243,16 @@ function TecnologiasPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
+              onClick={async () => {
                 if (toDelete) {
                   if (!canEdit("tecnologia", toDelete.id, currentEmail)) { denyToast(); setToDelete(null); return; }
-                  deleteTecnologia(toDelete.id);
-                  removeOwnership("tecnologia", toDelete.id);
+                  try {
+                    await deleteTecnologia(toDelete.id);
+                    removeOwnership("tecnologia", toDelete.id);
+                    toast.success("Tecnologia excluída.");
+                  } catch {
+                    toast.error("Erro ao excluir tecnologia.");
+                  }
                 }
                 setToDelete(null);
               }}
@@ -319,7 +324,7 @@ function TecnologiaModal({
 
   const meta = CATEGORIAS[categoria];
 
-  const submit = () => {
+  const submit = async () => {
     if (!nome || !quantidade) return;
     const payload = {
       categoria,
@@ -333,17 +338,21 @@ function TecnologiaModal({
       data,
       observacoes: observacoes || undefined,
     };
-    if (editing) {
-      if (!canEdit("tecnologia", editing.id, currentEmail)) { denyToast(); return; }
-      updateTecnologia(editing.id, payload);
-      toast.success("Tecnologia atualizada.");
-    } else {
-      const newId = addTecnologia(payload);
-      setOwnership("tecnologia", newId, makeOwnership(currentEmail, currentName));
-      addNotification({ type: "tecnologia", title: "Nova tecnologia cadastrada", body: nome });
-      toast.success("Tecnologia cadastrada.");
+    try {
+      if (editing) {
+        if (!canEdit("tecnologia", editing.id, currentEmail)) { denyToast(); return; }
+        await updateTecnologia(editing.id, payload);
+        toast.success("Tecnologia atualizada.");
+      } else {
+        const newId = await addTecnologia(payload);
+        setOwnership("tecnologia", newId, makeOwnership(currentEmail, currentName));
+        addNotification({ type: "tecnologia", title: "Nova tecnologia cadastrada", body: nome });
+        toast.success("Tecnologia cadastrada.");
+      }
+      onOpenChange(false);
+    } catch {
+      toast.error("Erro ao salvar tecnologia. Tente novamente.");
     }
-    onOpenChange(false);
   };
 
 

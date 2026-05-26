@@ -200,50 +200,60 @@ const subscribe = (cb: () => void) => {
 };
 const emit = () => listeners.forEach((l) => l());
 
+let fetchPromise: Promise<void> | null = null;
+
 export const fetchTecnologias = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("projeto_tecnologias")
-      .select(`
-        id,
-        projeto_id,
-        quantidade,
-        unidade,
-        familias,
-        municipios,
-        comunidades,
-        data,
-        observacoes,
-        tecnologias_sociais (
-          nome,
-          linha_de_acao_id
-        )
-      `);
+  if (fetchPromise) return fetchPromise;
 
-    if (error) {
-      console.error("[TecnologiasStore] error fetching from Supabase:", error);
-      return;
-    }
+  fetchPromise = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("projeto_tecnologias")
+        .select(`
+          id,
+          projeto_id,
+          quantidade,
+          unidade,
+          familias,
+          municipios,
+          comunidades,
+          data,
+          observacoes,
+          tecnologias_sociais (
+            nome,
+            linha_de_acao_id
+          )
+        `);
 
-    if (data) {
-      tecnologias = data.map((row: any) => ({
-        id: row.id,
-        categoria: lineIdToCat[row.tecnologias_sociais?.linha_de_acao_id] || "hidrica",
-        nome: row.tecnologias_sociais?.nome || "",
-        quantidade: row.quantidade,
-        unidade: row.unidade,
-        familias: row.familias || undefined,
-        municipios: row.municipios || "",
-        comunidades: row.comunidades || undefined,
-        projetoId: row.projeto_id || undefined,
-        data: row.data || new Date().toISOString().slice(0, 10),
-        observacoes: row.observacoes || undefined,
-      }));
-      emit();
+      if (error) {
+        console.error("[TecnologiasStore] error fetching from Supabase:", error);
+        return;
+      }
+
+      if (data) {
+        tecnologias = data.map((row: any) => ({
+          id: row.id,
+          categoria: lineIdToCat[row.tecnologias_sociais?.linha_de_acao_id] || "hidrica",
+          nome: row.tecnologias_sociais?.nome || "",
+          quantidade: row.quantidade,
+          unidade: row.unidade,
+          familias: row.familias || undefined,
+          municipios: row.municipios || "",
+          comunidades: row.comunidades || undefined,
+          projetoId: row.projeto_id || undefined,
+          data: row.data || new Date().toISOString().slice(0, 10),
+          observacoes: row.observacoes || undefined,
+        }));
+        emit();
+      }
+    } catch (err) {
+      console.error("[TecnologiasStore] exception during fetch:", err);
+    } finally {
+      fetchPromise = null;
     }
-  } catch (err) {
-    console.error("[TecnologiasStore] exception during fetch:", err);
-  }
+  })();
+
+  return fetchPromise;
 };
 
 const getOrCreateCatalogTechId = async (nome: string, categoria: CategoriaTec): Promise<string | null> => {
@@ -278,18 +288,57 @@ const getOrCreateCatalogTechId = async (nome: string, categoria: CategoriaTec): 
   }
 };
 
-export const addTecnologia = (t: Omit<Tecnologia, "id">): string => {
+export const addTecnologia = async (t: Omit<Tecnologia, "id">): Promise<string> => {
   const id = crypto.randomUUID();
+  const backup = tecnologias;
   tecnologias = [{ ...t, id }, ...tecnologias];
   emit();
 
-  (async () => {
-    try {
-      const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
-      if (!techId) return;
+  try {
+    const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
+    if (!techId) {
+      throw new Error("Não foi possível criar ou obter a tecnologia no catálogo.");
+    }
 
-      const { error } = await supabase.from("projeto_tecnologias").insert({
-        id,
+    const { error } = await supabase.from("projeto_tecnologias").insert({
+      id,
+      projeto_id: t.projetoId || null,
+      tecnologia_id: techId,
+      quantidade: t.quantidade,
+      unidade: t.unidade,
+      familias: t.familias || null,
+      municipios: t.municipios || null,
+      comunidades: t.comunidades || null,
+      data: t.data || null,
+      observacoes: t.observacoes || null,
+    });
+
+    if (error) throw error;
+    await fetchTecnologias();
+  } catch (err) {
+    console.error("[TecnologiasStore] error adding technology, rolling back:", err);
+    tecnologias = backup;
+    emit();
+    throw err;
+  }
+
+  return id;
+};
+
+export const updateTecnologia = async (id: string, t: Omit<Tecnologia, "id">): Promise<void> => {
+  const backup = tecnologias;
+  tecnologias = tecnologias.map((it) => (it.id === id ? { ...t, id } : it));
+  emit();
+
+  try {
+    const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
+    if (!techId) {
+      throw new Error("Não foi possível criar ou obter a tecnologia no catálogo.");
+    }
+
+    const { error } = await supabase
+      .from("projeto_tecnologias")
+      .update({
         projeto_id: t.projetoId || null,
         tecnologia_id: techId,
         quantidade: t.quantidade,
@@ -299,73 +348,38 @@ export const addTecnologia = (t: Omit<Tecnologia, "id">): string => {
         comunidades: t.comunidades || null,
         data: t.data || null,
         observacoes: t.observacoes || null,
-      });
+      })
+      .eq("id", id);
 
-      if (error) {
-        console.error("[TecnologiasStore] error adding technology:", error);
-      }
-      fetchTecnologias();
-    } catch (err) {
-      console.error("[TecnologiasStore] exception in addTecnologia:", err);
-    }
-  })();
-
-  return id;
+    if (error) throw error;
+    await fetchTecnologias();
+  } catch (err) {
+    console.error("[TecnologiasStore] error updating technology, rolling back:", err);
+    tecnologias = backup;
+    emit();
+    throw err;
+  }
 };
 
-export const updateTecnologia = (id: string, t: Omit<Tecnologia, "id">) => {
-  tecnologias = tecnologias.map((it) => (it.id === id ? { ...t, id } : it));
-  emit();
-
-  (async () => {
-    try {
-      const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
-      if (!techId) return;
-
-      const { error } = await supabase
-        .from("projeto_tecnologias")
-        .update({
-          projeto_id: t.projetoId || null,
-          tecnologia_id: techId,
-          quantidade: t.quantidade,
-          unidade: t.unidade,
-          familias: t.familias || null,
-          municipios: t.municipios || null,
-          comunidades: t.comunidades || null,
-          data: t.data || null,
-          observacoes: t.observacoes || null,
-        })
-        .eq("id", id);
-
-      if (error) {
-        console.error("[TecnologiasStore] error updating technology:", error);
-      }
-      fetchTecnologias();
-    } catch (err) {
-      console.error("[TecnologiasStore] exception in updateTecnologia:", err);
-    }
-  })();
-};
-
-export const deleteTecnologia = (id: string) => {
+export const deleteTecnologia = async (id: string): Promise<void> => {
+  const backup = tecnologias;
   tecnologias = tecnologias.filter((it) => it.id !== id);
   emit();
 
-  (async () => {
-    try {
-      const { error } = await supabase
-        .from("projeto_tecnologias")
-        .delete()
-        .eq("id", id);
+  try {
+    const { error } = await supabase
+      .from("projeto_tecnologias")
+      .delete()
+      .eq("id", id);
 
-      if (error) {
-        console.error("[TecnologiasStore] error deleting technology:", error);
-      }
-      fetchTecnologias();
-    } catch (err) {
-      console.error("[TecnologiasStore] exception in deleteTecnologia:", err);
-    }
-  })();
+    if (error) throw error;
+    await fetchTecnologias();
+  } catch (err) {
+    console.error("[TecnologiasStore] error deleting technology, rolling back:", err);
+    tecnologias = backup;
+    emit();
+    throw err;
+  }
 };
 
 export const useTecnologias = () => {

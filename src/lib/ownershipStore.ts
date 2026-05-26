@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { DIRECTORY, userNameByEmail } from "./usersDirectory";
 
 export type EntityType = "projeto" | "atividade" | "imagem" | "tecnologia";
@@ -128,83 +129,82 @@ const E = {
 
 const own = (email: string): Ownership => makeOwnership(email);
 
-export const seedOwnership = (
-  atividadesSortedIds: string[],
-  atividadeProjetoMap: Record<string, string>,
-) => {
+export const seedOwnership = async () => {
   if (typeof window === "undefined") return;
   if (localStorage.getItem(SEED_FLAG)) return;
 
-  const seed: Map = { ...map };
+  try {
+    const seed: Map = { ...map };
 
-  // Projetos
-  const projOwners: Record<string, string> = {
-    "1": E.teste,
-    "2": E.teste,
-    "3": E.maria,
-    "4": E.jose,
-    "5": E.ana,
-  };
-  for (const [pid, em] of Object.entries(projOwners)) {
-    if (!seed[keyOf("projeto", pid)]) seed[keyOf("projeto", pid)] = own(em);
-  }
+    // 1. Resolver Projetos
+    const { data: dbProjs } = await supabase.from("projetos").select("id, nome");
+    const projOwners: Record<string, string> = {
+      "Sementes do Sertão": E.teste,
+      "Cisternas para a Vida": E.teste,
+      "Mulheres da Caatinga": E.maria,
+      "Juventude do Araripe": E.jose,
+      "Quintais Produtivos": E.ana,
+    };
 
-  // Atividades — first 3 in sorted display order to teste; rest by projetoId
-  const projToOwner: Record<string, string> = {
-    "1": E.teste,
-    "2": E.teste,
-    "3": E.maria,
-    "4": E.jose,
-    "5": E.ana,
-  };
-  const firstThree = new Set(atividadesSortedIds.slice(0, 3));
-  for (const aid of atividadesSortedIds) {
-    const k = keyOf("atividade", aid);
-    if (seed[k]) continue;
-    if (firstThree.has(aid)) {
-      seed[k] = own(E.teste);
-    } else {
-      const pid = atividadeProjetoMap[aid];
-      const em = projToOwner[pid];
-      if (em) seed[k] = own(em);
-      else seed[k] = own(E.carlos); // remaining unassigned
+    const projIdToOwner: Record<string, string> = {};
+
+    if (dbProjs) {
+      dbProjs.forEach((p) => {
+        const ownerEmail = projOwners[p.nome] || E.carlos;
+        seed[keyOf("projeto", p.id)] = own(ownerEmail);
+        projIdToOwner[p.id] = ownerEmail;
+      });
     }
-  }
 
-  // Tecnologias
-  const tecOwners: Record<string, string> = {
-    t1: E.teste, t2: E.teste, t3: E.teste,
-    t4: E.maria, t20: E.maria, t19: E.maria,
-    t7: E.jose, t8: E.jose,
-    t9: E.ana, t10: E.ana, t5: E.ana, t17: E.ana, t22: E.ana, t23: E.ana,
-    t12: E.carlos, t13: E.carlos,
-    t15: E.lucia, t16: E.lucia,
-    // Remaining by project
-    t6: E.teste, t11: E.teste, t14: E.teste, t18: E.teste, t21: E.teste,
-  };
-  for (const [tid, em] of Object.entries(tecOwners)) {
-    const k = keyOf("tecnologia", tid);
-    if (!seed[k]) seed[k] = own(em);
-  }
+    // 2. Resolver Atividades
+    const { data: dbAtvs } = await supabase
+      .from("atividades")
+      .select("id, projeto_id")
+      .order("data", { ascending: false });
 
-  // Imagens
-  const imgOwners: Record<string, string> = {
-    "img-ex1": E.teste,
-    "img-ex2": E.teste,
-    "img-ex3": E.lucia,
-    "img-ex4": E.lucia,
-    "img-ex5": E.lucia,
-    "img-ex6": E.lucia,
-  };
-  for (const [iid, em] of Object.entries(imgOwners)) {
-    const k = keyOf("imagem", iid);
-    if (!seed[k]) seed[k] = own(em);
-  }
+    if (dbAtvs) {
+      dbAtvs.forEach((a, idx) => {
+        const ownerEmail =
+          idx < 3
+            ? E.teste
+            : (a.projeto_id ? projIdToOwner[a.projeto_id] : E.carlos) || E.carlos;
+        seed[keyOf("atividade", a.id)] = own(ownerEmail);
+      });
+    }
 
-  map = seed;
-  persist();
-  localStorage.setItem(SEED_FLAG, "1");
-  listeners.forEach((l) => l());
+    // 3. Resolver Tecnologias (projeto_tecnologias)
+    const { data: dbTechs } = await supabase
+      .from("projeto_tecnologias")
+      .select("id, projeto_id");
+
+    if (dbTechs) {
+      dbTechs.forEach((t) => {
+        const ownerEmail =
+          (t.projeto_id ? projIdToOwner[t.projeto_id] : E.carlos) || E.carlos;
+        seed[keyOf("tecnologia", t.id)] = own(ownerEmail);
+      });
+    }
+
+    // 4. Resolver Imagens (arquivos_midia)
+    const { data: dbImgs } = await supabase
+      .from("arquivos_midia")
+      .select("id")
+      .eq("tipo_arquivo", "imagem");
+
+    if (dbImgs) {
+      dbImgs.forEach((img, idx) => {
+        const ownerEmail = idx % 2 === 0 ? E.teste : E.lucia;
+        seed[keyOf("imagem", img.id)] = own(ownerEmail);
+      });
+    }
+
+    map = seed;
+    persist();
+    localStorage.setItem(SEED_FLAG, "1");
+    listeners.forEach((l) => l());
+  } catch (err) {
+    console.error("[ownershipStore] error during seeding:", err);
+  }
 };
 
 // Expose directory for collaborator lookup convenience
