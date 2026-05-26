@@ -49,7 +49,8 @@ import {
   updateTecnologia,
   useTecnologias,
 } from "@/lib/tecnologiasStore";
-import { projetosMock, formatDate } from "@/lib/mockData";
+import { formatDate } from "@/lib/mockData";
+import { useProjetos } from "@/lib/projetosStore";
 import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { CollaboratorsSection } from "@/components/CollaboratorsSection";
@@ -73,11 +74,14 @@ const todasCategorias = CATEGORIA_ORDEM;
 
 function TecnologiasPage() {
   const tecnologias = useTecnologias();
+  const projetos = useProjetos();
   const { email: currentEmail, name: currentName } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [initialCat, setInitialCat] = useState<CategoriaTec>("hidrica");
   const [editing, setEditing] = useState<Tecnologia | null>(null);
   const [toDelete, setToDelete] = useState<Tecnologia | null>(null);
+
+  const projetoMap = useMemo(() => new Map(projetos.map((p) => [p.id, p])), [projetos]);
 
   const grouped = useMemo(() => {
     const map = Object.fromEntries(
@@ -165,7 +169,7 @@ function TecnologiasPage() {
                     </TableHeader>
                     <TableBody>
                       {items.map((t) => {
-                        const projeto = projetosMock.find((p) => p.id === t.projetoId);
+                        const projetoRow = projetoMap.get(t.projetoId ?? "");
                         return (
                           <TableRow key={t.id}>
                             <TableCell className="font-medium">{t.nome}</TableCell>
@@ -179,7 +183,7 @@ function TecnologiasPage() {
                               {t.municipios}
                             </TableCell>
                             <TableCell className="text-sm">
-                              <div>{projeto?.nome ?? "—"}</div>
+                              <div>{projetoRow?.nome ?? "—"}</div>
                               {(() => { const o = getOwnership("tecnologia", t.id); return o ? <div className="text-[10px] text-muted-foreground mt-0.5">Criado por {o.ownerName}</div> : null; })()}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
@@ -222,6 +226,7 @@ function TecnologiasPage() {
         onOpenChange={setOpen}
         initialCategoria={initialCat}
         editing={editing}
+        projetos={projetos}
         currentEmail={currentEmail}
         currentName={currentName}
       />
@@ -261,6 +266,7 @@ function TecnologiaModal({
   onOpenChange,
   initialCategoria,
   editing,
+  projetos,
   currentEmail,
   currentName,
 }: {
@@ -268,6 +274,7 @@ function TecnologiaModal({
   onOpenChange: (v: boolean) => void;
   initialCategoria: CategoriaTec;
   editing: Tecnologia | null;
+  projetos: { id: string; nome: string }[];
   currentEmail: string;
   currentName: string;
 }) {
@@ -431,7 +438,7 @@ function TecnologiaModal({
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                {projetosMock.map((p) => (
+                {projetos.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.nome}
                   </SelectItem>

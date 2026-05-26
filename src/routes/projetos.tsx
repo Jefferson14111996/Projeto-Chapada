@@ -46,19 +46,32 @@ import { Progress } from "@/components/ui/progress";
 import {
   FINANCIADORES,
   MUNICIPIOS,
-  projetosMock,
   formatBRL,
   formatDate,
-  type Projeto,
   type ProjetoStatus,
 } from "@/lib/mockData";
 import { calcVigenciaProgress } from "@/lib/progress";
 import { toast } from "sonner";
 import { useGlobalSearch } from "@/contexts/SearchContext";
 import { addNotification } from "@/lib/notificationsStore";
-import { canEdit, denyToast, getOwnership, makeOwnership, removeOwnership, setOwnership, useOwnership } from "@/lib/ownershipStore";
+import {
+  canEdit,
+  denyToast,
+  getOwnership,
+  makeOwnership,
+  removeOwnership,
+  setOwnership,
+  useOwnership,
+} from "@/lib/ownershipStore";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { CollaboratorsSection } from "@/components/CollaboratorsSection";
+import {
+  useProjetos,
+  addProjeto,
+  updateProjeto,
+  deleteProjeto,
+  type ProjetoDB,
+} from "@/lib/projetosStore";
 
 export const Route = createFileRoute("/projetos")({
   head: () => ({
@@ -78,8 +91,7 @@ const statusVariant: Record<ProjetoStatus, string> = {
   Suspenso: "bg-terracotta/15 text-terracotta border-terracotta/30",
 };
 
-const empty: Projeto = {
-  id: "",
+const emptyProjeto: Omit<ProjetoDB, "id"> = {
   nome: "",
   contrato: "",
   financiador: "",
@@ -92,8 +104,10 @@ const empty: Projeto = {
   status: "Em execução",
 };
 
+type EditingState = Omit<ProjetoDB, "id"> & { id?: string };
+
 function ProjetosPage() {
-  const [projetos, setProjetos] = useState<Projeto[]>(projetosMock);
+  const projetos = useProjetos();
   const [search, setSearch] = useState("");
   const { query: globalQuery } = useGlobalSearch();
   const { email: currentEmail, name: currentName } = useCurrentUser();
@@ -101,14 +115,22 @@ function ProjetosPage() {
   const [fMun, setFMun] = useState<string>("todos");
   const [fStatus, setFStatus] = useState<string>("todos");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Projeto>(empty);
-  const editingOwnership = useOwnership("projeto", editing.id);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<EditingState>(emptyProjeto);
+  const editingOwnership = useOwnership("projeto", editing.id ?? "");
 
   const filtered = useMemo(() => {
     const gq = globalQuery.trim().toLowerCase();
     return projetos.filter((p) => {
       if (search && !p.nome.toLowerCase().includes(search.toLowerCase())) return false;
-      if (gq && ![p.nome, p.contrato, p.financiador, p.publicoCaract, p.municipios.join(" ")].join(" ").toLowerCase().includes(gq)) return false;
+      if (
+        gq &&
+        ![p.nome, p.contrato, p.financiador, p.publicoCaract, p.municipios.join(" ")]
+          .join(" ")
+          .toLowerCase()
+          .includes(gq)
+      )
+        return false;
       if (fFin !== "todos" && p.financiador !== fFin) return false;
       if (fMun !== "todos" && !p.municipios.includes(fMun)) return false;
       if (fStatus !== "todos" && p.status !== fStatus) return false;
@@ -117,46 +139,56 @@ function ProjetosPage() {
   }, [projetos, search, globalQuery, fFin, fMun, fStatus]);
 
   const openNew = () => {
-    setEditing({ ...empty, id: "" });
+    setEditing({ ...emptyProjeto });
     setOpen(true);
   };
-  const openEdit = (p: Projeto) => {
+  const openEdit = (p: ProjetoDB) => {
     if (!canEdit("projeto", p.id, currentEmail)) { denyToast(); return; }
     setEditing(p);
     setOpen(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!editing.nome || !editing.financiador) {
       toast.error("Preencha nome e financiador.");
       return;
     }
-    if (editing.id) {
-      if (!canEdit("projeto", editing.id, currentEmail)) { denyToast(); return; }
-      setProjetos((prev) => prev.map((p) => (p.id === editing.id ? editing : p)));
-      toast.success("Projeto atualizado.");
-    } else {
-      const id = crypto.randomUUID();
-      setProjetos((prev) => [{ ...editing, id }, ...prev]);
-      setOwnership("projeto", id, makeOwnership(currentEmail, currentName));
-      addNotification({ type: "projeto", title: "Novo projeto cadastrado", body: editing.nome });
-      toast.success("Projeto cadastrado.");
+    setSaving(true);
+    try {
+      if (editing.id) {
+        if (!canEdit("projeto", editing.id, currentEmail)) { denyToast(); return; }
+        await updateProjeto(editing.id, editing);
+        toast.success("Projeto atualizado.");
+      } else {
+        const novo = await addProjeto(editing as Omit<ProjetoDB, "id">);
+        setOwnership("projeto", novo.id, makeOwnership(currentEmail, currentName));
+        addNotification({ type: "projeto", title: "Novo projeto cadastrado", body: editing.nome });
+        toast.success("Projeto cadastrado.");
+      }
+      setOpen(false);
+    } catch {
+      toast.error("Erro ao salvar projeto. Tente novamente.");
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     if (!canEdit("projeto", id, currentEmail)) { denyToast(); return; }
-    setProjetos((prev) => prev.filter((p) => p.id !== id));
-    removeOwnership("projeto", id);
-    toast.success("Projeto removido.");
+    try {
+      await deleteProjeto(id);
+      removeOwnership("projeto", id);
+      toast.success("Projeto removido.");
+    } catch {
+      toast.error("Erro ao remover projeto.");
+    }
   };
 
   const toggleMun = (m: string) => {
     setEditing((e) =>
       e.municipios.includes(m)
         ? { ...e, municipios: e.municipios.filter((x) => x !== m) }
-        : { ...e, municipios: [...e.municipios, m] },
+        : { ...e, municipios: [...e.municipios, m] }
     );
   };
 
@@ -294,7 +326,12 @@ function ProjetosPage() {
               </div>
               {editing.id && editingOwnership && (
                 <div className="md:col-span-2">
-                  <CollaboratorsSection type="projeto" id={editing.id} ownership={editingOwnership} currentEmail={currentEmail} />
+                  <CollaboratorsSection
+                    type="projeto"
+                    id={editing.id}
+                    ownership={editingOwnership}
+                    currentEmail={currentEmail}
+                  />
                 </div>
               )}
             </div>
@@ -302,7 +339,9 @@ function ProjetosPage() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={save}>Salvar</Button>
+              <Button onClick={save} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -382,7 +421,9 @@ function ProjetosPage() {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    Nenhum projeto encontrado com os filtros selecionados.
+                    {projetos.length === 0
+                      ? "Carregando projetos..."
+                      : "Nenhum projeto encontrado com os filtros selecionados."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -391,7 +432,14 @@ function ProjetosPage() {
                     <TableCell>
                       <div className="font-medium">{p.nome}</div>
                       <div className="text-xs text-muted-foreground">{p.contrato}</div>
-                      {(() => { const o = getOwnership("projeto", p.id); return o ? <div className="text-[10px] text-muted-foreground mt-0.5">Criado por {o.ownerName}</div> : null; })()}
+                      {(() => {
+                        const o = getOwnership("projeto", p.id);
+                        return o ? (
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            Criado por {o.ownerName}
+                          </div>
+                        ) : null;
+                      })()}
                     </TableCell>
                     <TableCell className="text-sm">{p.financiador}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap min-w-[140px]">
@@ -406,7 +454,9 @@ function ProjetosPage() {
                               value={pct}
                               className={`h-1 ${done ? "[&>div]:bg-savanna" : ""}`}
                             />
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{pct}%</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              {pct}%
+                            </div>
                           </div>
                         );
                       })()}
@@ -451,7 +501,7 @@ function ProjetosPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remover projeto?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. O projeto "{p.nome}" será
+                                Esta ação não pode ser desfeita. O projeto &quot;{p.nome}&quot; será
                                 removido permanentemente.
                               </AlertDialogDescription>
                             </AlertDialogHeader>

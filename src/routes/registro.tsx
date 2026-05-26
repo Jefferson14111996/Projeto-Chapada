@@ -1,26 +1,25 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2, XCircle, Info, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, CheckCircle2, XCircle, User } from "lucide-react";
 import { toast } from "sonner";
 import { AuthLayout, ChapadaLogo } from "@/components/AuthLayout";
 import { LightInput, FieldLabel } from "./login";
 import { isAllowedEmail, DOMAIN_ERROR } from "@/lib/auth-domain";
-import { setProfile, capitalize } from "@/lib/profileStore";
+import { capitalize } from "@/lib/profileStore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/registro")({
   head: () => ({ meta: [{ title: "Cadastro — CHAPADA" }] }),
   component: RegistroPage,
 });
 
-type Step = "email" | "code" | "password" | "done";
-const DEMO_CODE = "123456";
+type Step = "email" | "password" | "done";
 
 function RegistroPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [pwd, setPwd] = useState("");
@@ -28,7 +27,7 @@ function RegistroPage() {
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const sendCode = (e: React.FormEvent) => {
+  const proceedToPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError(null);
     const trimmed = email.trim().toLowerCase();
@@ -36,49 +35,42 @@ function RegistroPage() {
       setEmailError(DOMAIN_ERROR);
       return;
     }
-    setSubmitting(true);
-    setTimeout(() => {
-      setEmail(trimmed);
-      setStep("code");
-      setSubmitting(false);
-      toast.success("Código enviado!");
-    }, 400);
-  };
-
-  const verifyCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code !== DEMO_CODE) {
-      toast.error("Código inválido.");
-      return;
-    }
+    setEmail(trimmed);
     setStep("password");
   };
 
   const match = pwd.length >= 8 && pwd === pwd2;
   const canCreate = firstName.trim() && lastName.trim() && match;
 
-  const createAccount = (e: React.FormEvent) => {
+  const createAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate) return;
     setSubmitting(true);
-    setTimeout(() => {
-      try {
-        setProfile(email, {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          password: pwd,
-        });
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("chapada.flash", "registered");
-        }
-        setStep("done");
-      } catch (err) {
-        console.error("createAccount error", err);
-        toast.error("Não foi possível criar sua conta. Tente novamente.");
-      } finally {
-        setSubmitting(false);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: pwd,
+        options: {
+          data: {
+            full_name: `${firstName.trim()} ${lastName.trim()}`,
+            role: "visualizador",
+          },
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        return;
       }
-    }, 500);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("chapada.flash", "registered");
+      }
+      setStep("done");
+    } catch (err) {
+      console.error("createAccount error", err);
+      toast.error("Não foi possível criar sua conta. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -97,8 +89,6 @@ function RegistroPage() {
   const leftMessage =
     step === "email"
       ? "Cadastre seu e-mail institucional para começar."
-      : step === "code"
-      ? "Insira o código de 6 dígitos enviado para seu e-mail."
       : step === "password"
       ? "Complete seus dados e crie uma senha segura."
       : "Tudo pronto! Redirecionando…";
@@ -124,7 +114,7 @@ function RegistroPage() {
       right={
         <>
           {step === "email" && (
-            <form onSubmit={sendCode} className="space-y-5">
+            <form onSubmit={proceedToPassword} className="space-y-5">
               <div>
                 <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
                   Criar conta
@@ -166,65 +156,7 @@ function RegistroPage() {
                 style={{ backgroundColor: "#1A9FD4" }}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Enviar código
-              </button>
-            </form>
-          )}
-
-          {step === "code" && (
-            <form onSubmit={verifyCode} className="space-y-5">
-              <div>
-                <h2 className="font-display text-2xl font-bold" style={{ color: "#1A9FD4" }}>
-                  Verificar código
-                </h2>
-              </div>
-
-              <div
-                className="flex items-start gap-3 rounded-lg border p-3 text-sm"
-                style={{ backgroundColor: "#EAF4FB", borderColor: "#1A9FD4", color: "#1A3A4A" }}
-              >
-                <Info className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#1A9FD4" }} />
-                <p>
-                  ✉️ Um código de 6 dígitos foi enviado para{" "}
-                  <strong>{email}</strong>. Verifique sua caixa de entrada.
-                </p>
-              </div>
-
-              <div>
-                <FieldLabel htmlFor="code">Código de verificação</FieldLabel>
-                <div className="relative">
-                  <KeyRound
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                    style={{ color: "#6B8A9A" }}
-                  />
-                  <LightInput
-                    id="code"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="000000"
-                    className="pl-10 text-center text-lg font-semibold tracking-[0.5em]"
-                    required
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={code.length !== 6}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 disabled:opacity-50"
-                style={{ backgroundColor: "#1A9FD4" }}
-              >
-                Verificar código
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("email")}
-                className="block w-full text-center text-xs hover:underline"
-                style={{ color: "#6B8A9A" }}
-              >
-                Usar outro e-mail
+                Avançar
               </button>
             </form>
           )}

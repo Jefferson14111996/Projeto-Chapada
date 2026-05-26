@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type CategoriaTec =
   | "hidrica"
@@ -24,6 +25,30 @@ export interface Tecnologia {
   data: string;
   observacoes?: string;
 }
+
+const catToLineId: Record<CategoriaTec, number> = {
+  hidrica: 1,
+  saneamento: 2,
+  energia: 3,
+  agroecologia: 4,
+  alimentacao: 5,
+  inclusao: 6,
+  formacao: 7,
+  ambiente: 8,
+  comunicacao: 9,
+};
+
+const lineIdToCat: Record<number, CategoriaTec> = {
+  1: "hidrica",
+  2: "saneamento",
+  3: "energia",
+  4: "agroecologia",
+  5: "alimentacao",
+  6: "inclusao",
+  7: "formacao",
+  8: "ambiente",
+  9: "comunicacao",
+};
 
 export const CATEGORIA_ORDEM: CategoriaTec[] = [
   "hidrica",
@@ -164,76 +189,196 @@ export const CATEGORIAS: Record<
   },
 };
 
-let tecnologias: Tecnologia[] = [
-  { id: "t1", categoria: "hidrica", nome: "Cisternas de placa", quantidade: 48, unidade: "unidades", municipios: "Araripina, Ouricuri", projetoId: "2", data: "2024-09-12" },
-  { id: "t2", categoria: "hidrica", nome: "Cisternas calçadão", quantidade: 22, unidade: "unidades", municipios: "Bodocó, Granito", projetoId: "2", data: "2024-11-05" },
-  { id: "t3", categoria: "saneamento", nome: "Banheiro Redondo", quantidade: 30, unidade: "unidades", municipios: "Trindade", projetoId: "1", data: "2025-01-20" },
-  { id: "t4", categoria: "ambiente", nome: "Plantio de mudas nativas", quantidade: 12, unidade: "hectares", municipios: "Exu, Moreilândia", projetoId: "3", data: "2024-07-18" },
-  { id: "t5", categoria: "alimentacao", nome: "Quintais produtivos", quantidade: 65, unidade: "unidades", familias: 65, municipios: "Trindade, Ouricuri", projetoId: "5", data: "2024-05-10" },
-  { id: "t6", categoria: "alimentacao", nome: "Hortas comunitárias", quantidade: 8, unidade: "unidades", familias: 120, municipios: "Araripina", projetoId: "1", data: "2025-02-22" },
-
-  // Energias Renováveis
-  { id: "t7", categoria: "energia", nome: "Sistemas fotovoltaicos para produção agrícola", quantidade: 1, unidade: "unidades", municipios: "Araripina", projetoId: "1", data: "2024-10-05" },
-  { id: "t8", categoria: "energia", nome: "Energia solar residencial", quantidade: 1, unidade: "unidades", municipios: "Ouricuri", projetoId: "1", data: "2024-11-15" },
-
-  // Agroecologia e Produção Sustentável
-  { id: "t9", categoria: "agroecologia", nome: "Quintais produtivos agroecológicos", quantidade: 20, unidade: "unidades", familias: 20, municipios: "Araripina", projetoId: "1", data: "2024-08-20" },
-  { id: "t10", categoria: "agroecologia", nome: "Sistemas agroflorestais (SAFs)", quantidade: 5, unidade: "hectares", municipios: "Trindade", projetoId: "1", data: "2024-09-10" },
-  { id: "t11", categoria: "agroecologia", nome: "Bancos comunitários de sementes crioulas", quantidade: 3, unidade: "unidades", municipios: "Ouricuri", projetoId: "1", data: "2025-01-12" },
-
-  // Inclusão Socioprodutiva e Economia Solidária
-  { id: "t12", categoria: "inclusao", nome: "Grupos produtivos de mulheres e juventudes", quantidade: 4, unidade: "grupos", municipios: "Araripina", projetoId: "3", data: "2024-06-18" },
-  { id: "t13", categoria: "inclusao", nome: "Feiras agroecológicas", quantidade: 2, unidade: "feiras", municipios: "Trindade", projetoId: "5", data: "2024-07-22" },
-  { id: "t14", categoria: "inclusao", nome: "Apicultura sustentável", quantidade: 10, unidade: "unidades", municipios: "Bodocó", projetoId: "1", data: "2024-10-30" },
-
-  // Formação, ATER e Gestão Social
-  { id: "t15", categoria: "formacao", nome: "Dias de campo", quantidade: 5, unidade: "eventos", municipios: "Araripina", projetoId: "1", data: "2024-09-25" },
-  { id: "t16", categoria: "formacao", nome: "Intercâmbios de experiências", quantidade: 3, unidade: "eventos", municipios: "Ouricuri", projetoId: "3", data: "2024-11-08" },
-  { id: "t17", categoria: "formacao", nome: "Diagnóstico Rural Participativo (DRP)", quantidade: 2, unidade: "eventos", municipios: "Trindade", projetoId: "5", data: "2024-05-14" },
-
-  // Comunicação Popular
-  { id: "t18", categoria: "comunicacao", nome: "Programas de rádio", quantidade: 12, unidade: "programas", municipios: "Araripina", projetoId: "1", data: "2024-12-01" },
-  { id: "t19", categoria: "comunicacao", nome: "Produção de vídeos populares", quantidade: 4, unidade: "vídeos", municipios: "Ouricuri", projetoId: "3", data: "2025-01-20" },
-
-  // Meio Ambiente — adicionais
-  { id: "t20", categoria: "ambiente", nome: "Recuperação de áreas degradadas", quantidade: 8, unidade: "hectares", municipios: "Bodocó", projetoId: "3", data: "2024-08-12" },
-  { id: "t21", categoria: "ambiente", nome: "Manejo sustentável da Caatinga", quantidade: 15, unidade: "hectares", municipios: "Exu", projetoId: "1", data: "2024-09-28" },
-
-  // Segurança Alimentar — adicionais
-  { id: "t22", categoria: "alimentacao", nome: "Beneficiamento de alimentos", quantidade: 2, unidade: "unidades", municipios: "Araripina", projetoId: "5", data: "2024-10-17" },
-  { id: "t23", categoria: "alimentacao", nome: "Produção de polpas e derivados", quantidade: 1, unidade: "unidades", municipios: "Trindade", projetoId: "5", data: "2024-11-22" },
-];
+let tecnologias: Tecnologia[] = [];
 
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
-  return () => listeners.delete(cb);
+  return () => {
+    listeners.delete(cb);
+  };
 };
 const emit = () => listeners.forEach((l) => l());
 
+export const fetchTecnologias = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("projeto_tecnologias")
+      .select(`
+        id,
+        projeto_id,
+        quantidade,
+        unidade,
+        familias,
+        municipios,
+        comunidades,
+        data,
+        observacoes,
+        tecnologias_sociais (
+          nome,
+          linha_de_acao_id
+        )
+      `);
+
+    if (error) {
+      console.error("[TecnologiasStore] error fetching from Supabase:", error);
+      return;
+    }
+
+    if (data) {
+      tecnologias = data.map((row: any) => ({
+        id: row.id,
+        categoria: lineIdToCat[row.tecnologias_sociais?.linha_de_acao_id] || "hidrica",
+        nome: row.tecnologias_sociais?.nome || "",
+        quantidade: row.quantidade,
+        unidade: row.unidade,
+        familias: row.familias || undefined,
+        municipios: row.municipios || "",
+        comunidades: row.comunidades || undefined,
+        projetoId: row.projeto_id || undefined,
+        data: row.data || new Date().toISOString().slice(0, 10),
+        observacoes: row.observacoes || undefined,
+      }));
+      emit();
+    }
+  } catch (err) {
+    console.error("[TecnologiasStore] exception during fetch:", err);
+  }
+};
+
+const getOrCreateCatalogTechId = async (nome: string, categoria: CategoriaTec): Promise<string | null> => {
+  const lineId = catToLineId[categoria] || 1;
+  try {
+    const { data } = await supabase
+      .from("tecnologias_sociais")
+      .select("id")
+      .eq("nome", nome)
+      .maybeSingle();
+
+    if (data) return data.id;
+
+    const { data: newTech, error } = await supabase
+      .from("tecnologias_sociais")
+      .insert({
+        nome,
+        linha_de_acao_id: lineId,
+        tipo_entrega: categoria === "formacao" || categoria === "comunicacao" || categoria === "inclusao" ? "Metodológica" : "Física",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("[TecnologiasStore] error inserting catalog tech:", error);
+      return null;
+    }
+    return newTech?.id || null;
+  } catch (err) {
+    console.error("[TecnologiasStore] exception in getOrCreateCatalogTechId:", err);
+    return null;
+  }
+};
+
 export const addTecnologia = (t: Omit<Tecnologia, "id">): string => {
-  const id = `t${Date.now()}`;
+  const id = crypto.randomUUID();
   tecnologias = [{ ...t, id }, ...tecnologias];
   emit();
+
+  (async () => {
+    try {
+      const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
+      if (!techId) return;
+
+      const { error } = await supabase.from("projeto_tecnologias").insert({
+        id,
+        projeto_id: t.projetoId || null,
+        tecnologia_id: techId,
+        quantidade: t.quantidade,
+        unidade: t.unidade,
+        familias: t.familias || null,
+        municipios: t.municipios || null,
+        comunidades: t.comunidades || null,
+        data: t.data || null,
+        observacoes: t.observacoes || null,
+      });
+
+      if (error) {
+        console.error("[TecnologiasStore] error adding technology:", error);
+      }
+      fetchTecnologias();
+    } catch (err) {
+      console.error("[TecnologiasStore] exception in addTecnologia:", err);
+    }
+  })();
+
   return id;
 };
 
 export const updateTecnologia = (id: string, t: Omit<Tecnologia, "id">) => {
   tecnologias = tecnologias.map((it) => (it.id === id ? { ...t, id } : it));
   emit();
+
+  (async () => {
+    try {
+      const techId = await getOrCreateCatalogTechId(t.nome, t.categoria);
+      if (!techId) return;
+
+      const { error } = await supabase
+        .from("projeto_tecnologias")
+        .update({
+          projeto_id: t.projetoId || null,
+          tecnologia_id: techId,
+          quantidade: t.quantidade,
+          unidade: t.unidade,
+          familias: t.familias || null,
+          municipios: t.municipios || null,
+          comunidades: t.comunidades || null,
+          data: t.data || null,
+          observacoes: t.observacoes || null,
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error("[TecnologiasStore] error updating technology:", error);
+      }
+      fetchTecnologias();
+    } catch (err) {
+      console.error("[TecnologiasStore] exception in updateTecnologia:", err);
+    }
+  })();
 };
 
 export const deleteTecnologia = (id: string) => {
   tecnologias = tecnologias.filter((it) => it.id !== id);
   emit();
+
+  (async () => {
+    try {
+      const { error } = await supabase
+        .from("projeto_tecnologias")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("[TecnologiasStore] error deleting technology:", error);
+      }
+      fetchTecnologias();
+    } catch (err) {
+      console.error("[TecnologiasStore] exception in deleteTecnologia:", err);
+    }
+  })();
 };
 
-export const useTecnologias = () =>
-  useSyncExternalStore(
+export const useTecnologias = () => {
+  useEffect(() => {
+    fetchTecnologias();
+  }, []);
+
+  return useSyncExternalStore(
     subscribe,
     () => tecnologias,
     () => tecnologias,
   );
+};
 
 export const getTotalTecnologias = () =>
   tecnologias.reduce((acc, t) => acc + (Number(t.quantidade) || 0), 0);

@@ -27,13 +27,13 @@ export const Route = createFileRoute("/indicadores")({
   component: IndicadoresPage,
 });
 
-const beneficiarios = [
-  { grupo: "Mulheres", total: 640 },
-  { grupo: "Jovens", total: 380 },
-  { grupo: "Quilombolas", total: 180 },
-  { grupo: "Povos Originários", total: 95 },
-  { grupo: "Comunidades Tradicionais", total: 220 },
-];
+const baselines = {
+  Mulheres: 640,
+  Jovens: 380,
+  Quilombolas: 180,
+  "Povos Originários": 95,
+  "Comunidades Tradicionais": 220,
+};
 
 const porMunicipio = [
   { name: "Araripina", value: 320 },
@@ -76,9 +76,21 @@ async function chartToPng(node: HTMLElement | null): Promise<string | null> {
   return canvas.toDataURL("image/png");
 }
 
+import { useAtividadesIndicadores } from "@/lib/atividadesStore";
+
 function IndicadoresPage() {
   const barRef = useRef<HTMLDivElement>(null);
   const pieRef = useRef<HTMLDivElement>(null);
+  
+  const ind = useAtividadesIndicadores();
+
+  const beneficiarios = [
+    { grupo: "Mulheres", total: baselines.Mulheres + ind.mulheres },
+    { grupo: "Jovens", total: baselines.Jovens + ind.jovens },
+    { grupo: "Quilombolas", total: baselines.Quilombolas + ind.quilombolas },
+    { grupo: "Povos Originários", total: baselines["Povos Originários"] + ind.povosOriginarios },
+    { grupo: "Comunidades Tradicionais", total: baselines["Comunidades Tradicionais"] + ind.comunidadesTradicionais },
+  ];
 
   const totalBeneficiarios = beneficiarios.reduce((a, b) => a + b.total, 0);
 

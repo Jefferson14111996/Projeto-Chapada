@@ -1,75 +1,26 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ImagemItem {
   id: string;
-  projeto: string;
+  projeto: string;      // nome do projeto (para exibição)
+  projetoId?: string;   // uuid FK
   local: string;
   tipo: string;
-  date: string; // dd/mm/yyyy
-  dataUrl: string; // base64 image
+  date: string;         // dd/mm/yyyy (para exibição)
+  dataIso?: string;     // ISO para ordenação
+  url: string;          // URL pública do Supabase Storage
   nomeArquivo: string;
+  // legacy compat – dataUrl agora é um alias de url
+  dataUrl?: string;
 }
 
-const seed: ImagemItem[] = [
-  {
-    id: "img-ex1",
-    projeto: "Cisternas para a Vida",
-    local: "Araripina",
-    tipo: "Entrega",
-    date: "15/03/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzRGQzNGNyIvPjxyZWN0IHg9IjUwIiB5PSIxODAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0iI0UxRjVGRSIgb3BhY2l0eT0iMC42Ii8+PGNpcmNsZSBjeD0iMzIwIiBjeT0iODAiIHI9IjQwIiBmaWxsPSIjRkZGMTc2IiBvcGFjaXR5PSIwLjgiLz48cGF0aCBkPSJNMCAyMjAgUTIwMCAxODAgNDAwIDIyMCBMNDAwIDMwMCBMMCAzMDAgWiIgZmlsbD0iIzgxQzc4NCIgb3BhY2l0eT0iMC41Ii8+PC9zdmc+",
-    nomeArquivo: "placeholder-cisternas-araripina.svg",
-  },
-  {
-    id: "img-ex2",
-    projeto: "Sementes do Sertão",
-    local: "Ouricuri",
-    tipo: "Oficina",
-    date: "22/04/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzhENkU2MyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iODAiIGZpbGw9IiM1RDQwMzciIG9wYWNpdHk9IjAuNSIvPjxyZWN0IHg9IjEwMCIgeT0iMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjQTE4ODdGIiByeD0iNSIvPjxjaXJjbGUgY3g9IjgwIiBjeT0iODAiIHI9IjI1IiBmaWxsPSIjRDdDQ0M4IiBvcGFjaXR5PSIwLjQiLz48L3N2Zz4=",
-    nomeArquivo: "placeholder-sementes-ouricuri.svg",
-  },
-  {
-    id: "img-ex3",
-    projeto: "Mulheres da Caatinga",
-    local: "Trindade",
-    tipo: "Encontro",
-    date: "10/02/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI0ZGOEE4MCIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iNjAiIGZpbGw9IiNGRjUyNTIiIG9wYWNpdHk9IjAuNCIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjIwMCIgcj0iODAiIGZpbGw9IiNGRjUyNTIiIG9wYWNpdHk9IjAuMyIvPjxyZWN0IHg9IjE1MCIgeT0iMjQwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRkZFQkVFIiBvcGFjaXR5PSIwLjUiIHJ4PSI1Ii8+PC9zdmc+",
-    nomeArquivo: "placeholder-mulheres-trindade.svg",
-  },
-  {
-    id: "img-ex4",
-    projeto: "Quintais Produtivos",
-    local: "Bodocó",
-    tipo: "Capacitação",
-    date: "05/01/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzY2QkI2QSIvPjxyZWN0IHg9IjUwIiB5PSIxNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMzg4RTNDIiBvcGFjaXR5PSIwLjQiIHJ4PSIxMCIvPjxjaXJjbGUgY3g9IjgwIiBjeT0iODAiIHI9IjMwIiBmaWxsPSIjQzhFNkM5IiBvcGFjaXR5PSIwLjUiLz48Y2lyY2xlIGN4PSIzMjAiIGN5PSI5MCIgcj0iMjUiIGZpbGw9IiNDOEU2QzkiIG9wYWNpdHk9IjAuNSIvPjwvc3ZnPg==",
-    nomeArquivo: "placeholder-quintais-bodoco.svg",
-  },
-  {
-    id: "img-ex5",
-    projeto: "Juventude do Araripe",
-    local: "Exu",
-    tipo: "Visita Técnica",
-    date: "18/03/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI0ZGRDU0RiIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iMTAwIiBmaWxsPSIjRjU3RjE3IiBvcGFjaXR5PSIwLjMiLz48cmVjdCB4PSIxMjAiIHk9IjIwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0ZGRjhFMSIgb3BhY2l0eT0iMC42IiByeD0iOCIvPjxwYXRoIGQ9Ik0wIDI1MCBRMTAwIDIyMCAyMDAgMjUwIFQ0MDAgMjUwIEw0MDAgMzAwIEwwIDMwMCBaIiBmaWxsPSIjRjlBODI1IiBvcGFjaXR5PSIwLjQiLz48L3N2Zz4=",
-    nomeArquivo: "placeholder-juventude-exu.svg",
-  },
-  {
-    id: "img-ex6",
-    projeto: "Cisternas para a Vida",
-    local: "Salgueiro",
-    tipo: "Entrega",
-    date: "02/04/2025",
-    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzREQjZBQyIvPjxyZWN0IHg9IjYwIiB5PSIxNjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iOTAiIHJ4PSIxMiIgZmlsbD0iI0UwRjJGMSIgb3BhY2l0eT0iMC41Ii8+PGNpcmNsZSBjeD0iMzAwIiBjeT0iNzAiIHI9IjQ1IiBmaWxsPSIjRkZGNTlEIiBvcGFjaXR5PSIwLjciLz48cGF0aCBkPSJNMCAyMzAgUTE1MCAyMDAgMzAwIDIzMCBUNDAwIDIzMCBMNDAwIDMwMCBMMCAzMDAgWiIgZmlsbD0iIzAwODk3QiIgb3BhY2l0eT0iMC40Ii8+PC9zdmc+",
-    nomeArquivo: "placeholder-cisternas-salgueiro.svg",
-  },
-];
-
-let imagens: ImagemItem[] = seed;
+// ─── State ────────────────────────────────────────────────────────────────────
+let imagens: ImagemItem[] = [];
+let initialized = false;
 
 const listeners = new Set<() => void>();
+
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
   return () => {
@@ -78,26 +29,177 @@ const subscribe = (cb: () => void) => {
 };
 const emit = () => listeners.forEach((l) => l());
 
-export const addImagem = (img: Omit<ImagemItem, "id">): string => {
-  const id = `img${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  imagens = [{ ...img, id }, ...imagens];
+// ─── Database Row → ImagemItem ─────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToImagem(row: any): ImagemItem {
+  let dateDisplay = "";
+  if (row.data) {
+    const [y, m, d] = row.data.split("-");
+    dateDisplay = `${d}/${m}/${y}`;
+  }
+  return {
+    id: row.id,
+    projeto: row.nome_projeto ?? "",
+    projetoId: row.projeto_id ?? undefined,
+    local: row.local ?? "",
+    tipo: row.tipo_acao ?? "",
+    date: dateDisplay,
+    dataIso: row.data ?? "",
+    url: row.url ?? "",
+    nomeArquivo: row.nome ?? "",
+    dataUrl: row.url ?? "",
+  };
+}
+
+// ─── Initialize ───────────────────────────────────────────────────────────────
+export const initImagens = async () => {
+  if (initialized) return;
+  initialized = true;
+
+  // Join arquivos_midia with projetos to get the project name
+  const { data, error } = await supabase
+    .from("arquivos_midia" as any)
+    .select("*, projetos(nome)")
+    .eq("tipo_arquivo", "imagem")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[imagensStore] init error:", error);
+    return;
+  }
+
+  imagens = (data ?? []).map((row) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nomeProjeto = (row as any).projetos?.nome ?? "";
+    return rowToImagem({ ...row, nome_projeto: nomeProjeto });
+  });
   emit();
-  return id;
 };
 
-export const updateImagem = (id: string, patch: Partial<Omit<ImagemItem, "id" | "dataUrl" | "nomeArquivo">>) => {
+// ─── Upload + Insert ───────────────────────────────────────────────────────────
+
+export interface AddImagemPayload {
+  file: File;
+  projeto: string;     // nome (display)
+  projetoId?: string;  // uuid
+  local: string;
+  tipo: string;
+  date: string; // ISO date yyyy-mm-dd
+}
+
+export const addImagem = async (payload: AddImagemPayload): Promise<string> => {
+  const ext = payload.file.name.split(".").pop() ?? "jpg";
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+
+  // 1. Upload file to Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from("imagens")
+    .upload(fileName, payload.file, { cacheControl: "3600", upsert: false });
+
+  if (uploadError) {
+    console.error("[imagensStore] upload error:", uploadError);
+    throw uploadError;
+  }
+
+  // 2. Get public URL
+  const { data: urlData } = supabase.storage
+    .from("imagens")
+    .getPublicUrl(fileName);
+
+  const publicUrl = urlData.publicUrl;
+
+  // 3. Insert metadata row in arquivos_midia
+  const { data: rowData, error: dbError } = await supabase
+    .from("arquivos_midia" as any)
+    .insert({
+      projeto_id: payload.projetoId || null,
+      nome: payload.file.name,
+      tipo_acao: payload.tipo || null,
+      data: payload.date || null,
+      local: payload.local || null,
+      url: publicUrl,
+      tipo_arquivo: "imagem",
+    })
+    .select("*, projetos(nome)")
+    .single();
+
+  if (dbError || !rowData) {
+    console.error("[imagensStore] db insert error:", dbError);
+    throw dbError ?? new Error("Falha ao salvar metadados da imagem.");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nomeProjeto = (rowData as any).projetos?.nome ?? payload.projeto;
+  const nova = rowToImagem({ ...rowData, nome_projeto: nomeProjeto });
+  imagens = [nova, ...imagens];
+  emit();
+  return nova.id;
+};
+
+export const updateImagem = async (
+  id: string,
+  patch: Partial<Pick<ImagemItem, "projeto" | "local" | "tipo" | "date" | "projetoId">>
+) => {
+  const updatePayload: Record<string, unknown> = {};
+  if (patch.projetoId !== undefined) updatePayload.projeto_id = patch.projetoId;
+  if (patch.local !== undefined) updatePayload.local = patch.local;
+  if (patch.tipo !== undefined) updatePayload.tipo_acao = patch.tipo;
+  if (patch.date !== undefined) {
+    // Accept dd/mm/yyyy or ISO
+    if (patch.date.includes("/")) {
+      const [d, m, y] = patch.date.split("/");
+      updatePayload.data = `${y}-${m}-${d}`;
+    } else {
+      updatePayload.data = patch.date;
+    }
+  }
+
+  const { error } = await supabase
+    .from("arquivos_midia" as any)
+    .update(updatePayload)
+    .eq("id", id);
+
+  if (error) {
+    console.error("[imagensStore] update error:", error);
+    throw error;
+  }
+
   imagens = imagens.map((i) => (i.id === id ? { ...i, ...patch } : i));
   emit();
 };
 
-export const removeImagem = (id: string) => {
+export const removeImagem = async (id: string) => {
+  // Find the file so we can also remove from Storage
+  const img = imagens.find((i) => i.id === id);
+
+  const { error } = await supabase.from("arquivos_midia" as any).delete().eq("id", id);
+  if (error) {
+    console.error("[imagensStore] delete error:", error);
+    throw error;
+  }
+
+  // Best-effort delete from Storage
+  if (img?.url) {
+    const parts = img.url.split("/imagens/");
+    if (parts[1]) {
+      await supabase.storage.from("imagens").remove([parts[1]]);
+    }
+  }
+
   imagens = imagens.filter((i) => i.id !== id);
   emit();
 };
 
-export const useImagens = () =>
-  useSyncExternalStore(
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+export const useImagens = (): ImagemItem[] => {
+  useEffect(() => {
+    initImagens();
+  }, []);
+
+  return useSyncExternalStore(
     subscribe,
     () => imagens,
-    () => imagens,
+    () => imagens
   );
+};

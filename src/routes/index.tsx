@@ -26,10 +26,10 @@ import {
   kpis,
   projetosPorAno,
   projetosPorFinanciador,
-  projetosMock,
   formatDate,
 } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
+import { useProjetos } from "@/lib/projetosStore";
 import { useTotalTecnologias } from "@/lib/tecnologiasStore";
 import { useAtividades, useAtividadesIndicadores } from "@/lib/atividadesStore";
 
@@ -51,6 +51,7 @@ const toneClass: Record<string, string> = {
 };
 
 function Dashboard() {
+  const projetos = useProjetos();
   const totalTecnologias = useTotalTecnologias();
   const atividades = useAtividades();
   const ind = useAtividadesIndicadores();
@@ -169,7 +170,7 @@ function Dashboard() {
         <CardContent>
           <ul className="divide-y divide-border">
             {atividades.slice(0, 10).map((a) => {
-              const projeto = projetosMock.find((p) => p.id === a.projetoId);
+              const projeto = projetos.find((p) => p.id === a.projetoId);
               return (
                 <li key={a.id} className="py-4 flex items-start gap-4">
                   <div className="h-10 w-10 rounded-lg bg-accent grid place-items-center shrink-0">
