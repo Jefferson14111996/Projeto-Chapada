@@ -156,7 +156,7 @@ function DocumentosPage() {
       await addDocumento({
         file: pendingFile,
         projetoId: form.projetoId || undefined,
-        categoriaId: undefined, // usaremos categoria como texto até ter FK funcional
+        categoria: form.categoria || undefined,
         tags,
         documentoPaiId: form.documentoPaiId || undefined,
       });
