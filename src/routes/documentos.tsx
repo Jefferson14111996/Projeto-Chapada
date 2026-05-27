@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ import { useGlobalSearch } from "@/contexts/SearchContext";
 import { useProjetos } from "@/lib/projetosStore";
 import { addDocumento, deleteDocumento, useDocumentos, type DocumentoItem } from "@/lib/documentosStore";
 import { formatDate } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { addNotification } from "@/lib/notificationsStore";
 
 export const Route = createFileRoute("/documentos")({
@@ -93,6 +94,13 @@ function DocumentosPage() {
   const projetos = useProjetos();
   const { query } = useGlobalSearch();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [categorias, setCategorias] = useState<{id: string, nome: string}[]>([]);
+
+useEffect(() => {
+  supabase.from("categorias").select("id, nome")
+    .then(({ data }) => setCategorias(data ?? []));
+}, []);
 
   const [search, setSearch] = useState("");
   const [fCategoria, setFCategoria] = useState("todos");
@@ -410,9 +418,9 @@ function DocumentosPage() {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIAS_PADRAO.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
+                  {categorias.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>
+              ))}
                 </SelectContent>
               </Select>
             </div>
@@ -424,7 +432,7 @@ function DocumentosPage() {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {projetos.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                   ))}

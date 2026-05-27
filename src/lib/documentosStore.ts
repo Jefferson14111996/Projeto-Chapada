@@ -37,7 +37,8 @@ function rowToDoc(row: any): DocumentoItem {
     // Join com projetos pode vir como objeto ou undefined
     projeto: row.projetos?.nome ?? row.projeto ?? "",
     // categoria é coluna texto simples (sem FK)
-    categoria: row.categoria ?? "",
+    // ✅ Pega o nome via join
+    categoria: row.categorias?.nome ?? row.categoria ?? "",
     // tags e versao são colunas novas — podem não existir ainda no banco
     tags: Array.isArray(row.tags) ? row.tags : [],
     versao: typeof row.versao === "number" ? row.versao : 1,
@@ -56,7 +57,8 @@ export const initDocumentos = async () => {
     // então fazemos SELECT * e deixamos rowToDoc lidar com undefined
     const { data, error } = await supabase
       .from("arquivos_midia")
-      .select("*, projetos(nome)") // sem join em categorias (tabela pode não existir)
+      // ✅ Com join de categorias
+      .select("*, projetos(nome), categorias(nome)")// sem join em categorias (tabela pode não existir)
       .eq("tipo_arquivo", "documento")
       .order("created_at", { ascending: false });
 
@@ -138,19 +140,20 @@ export const addDocumento = async (params: {
 
   // Colunas novas (migration pode não ter rodado ainda — tentamos incluir)
   try {
-    insertPayload.categoria = params.categoria ?? null;
+    insertPayload.categoria_id = params.categoria ?? null;
     insertPayload.tags = params.tags ?? [];
     insertPayload.versao = versao;
     insertPayload.documento_pai_id = params.documentoPaiId ?? null;
   } catch {
-    // silencioso
+     console.error("Erro ao salvar campos extras:", e);
   }
 
   // 5. Inserir registro na tabela de metadados
   const { data, error } = await supabase
     .from("arquivos_midia")
     .insert(insertPayload)
-    .select("*, projetos(nome)")
+    // ✅ Com join de categorias
+    .select("*, projetos(nome), categorias(nome)")
     .single();
 
   if (error || !data) {
